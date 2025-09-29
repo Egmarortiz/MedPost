@@ -3,8 +3,6 @@
 This README documents three critical MedPost use cases with **Mermaid sequence diagrams**.  
 They cover login & dashboard loading, posting a job with instant candidate suggestions, and the end-to-end apply/review/endorse flow.
 
-> Rendering: GitHub, GitLab, and many Markdown previewers render Mermaid automatically. In VS Code, use a Mermaid-enabled preview extension if needed.
-
 ---
 
 ## 1) Login → Load Dashboard (retrieve data)
