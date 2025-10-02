@@ -9,11 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.MedPostApp",
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
@@ -23,8 +19,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.MedPostApp"
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
@@ -48,12 +43,6 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    },
-    "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "a745a25d-5123-4c89-a7c5-617a7f05f2b8"
-      }
     }
   }
 }
