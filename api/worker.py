@@ -14,9 +14,13 @@ from schemas.worker import WorkerCreate, WorkerRead
 router = APIRouter(prefix="/workers", tags=["workers"])
 
 
-@router.post("/", response_model=WorkerRead,status.HTTP_201_CREATED)
+@router.post("/", response_model=WorkerRead,status_code=status.HTTP_201_CREATED)
 def create_worker(worker: WorkerCreate, db: Session = Depends(get_db)):
-    return crud_worker.create_worker(db, worker)
+    db_worker = Worker(**worker.dict())
+    db.add(db_worker)
+    db.commit()
+    db.refresh(db_worker)
+    return db_worker
 
 @route.get("/{worker_id}", response_model=WorkerRead)
 def get_worker(worker_id: UUID, db: Session = Depends(get_db)):

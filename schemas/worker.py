@@ -20,7 +20,7 @@ class WorkerCreate(BaseModel):
     education_level: EducationLevel
 
 # Reads output
-class WorkerRead(BaseModel)
+class WorkerRead(BaseModel):
     id: UUID
     full_name: str
     title: WorkerTitle
