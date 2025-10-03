@@ -1,8 +1,8 @@
 #!/bin/bash/env python3
 """Pydantic schema for worker model"""
 
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, HttpUrl
+from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
 from ..models.base_model import WorkerTitle, EducationLevel
@@ -24,7 +24,7 @@ class WorkerRead(BaseModel)
     id: UUID
     full_name: str
     title: WorkerTitle
-    bio: Optional[str]
+    bio: Optional[str] = None
     profile_image_url: HttpUrl
     resume_url: HttpUrl
     city: str
@@ -39,12 +39,12 @@ class WorkerRead(BaseModel)
 
 # Updates inputs
 class WorkerUpdate(BaseModel):
-    full_name: Optional[str]
-    title: Optional[WorkerTitle]
-    bio: Optional[str]
-    profile_image_url: Optional[HttpUrl]
-    resume_url: Optional[HttpUrl]
-    city: Optional[str]
-    state_province: Optional[str]
-    postal_code: Optional[int]
-    education_level: Optional[EducationLevel]
+    full_name: Optional[str] = None
+    title: Optional[WorkerTitle] = None
+    bio: Optional[str] = None
+    profile_image_url: Optional[HttpUrl] = None
+    resume_url: Optional[HttpUrl] = None
+    city: Optional[str] = None
+    state_province: Optional[str] = None
+    postal_code: Optional[int] = None
+    education_level: Optional[EducationLevel] = None
