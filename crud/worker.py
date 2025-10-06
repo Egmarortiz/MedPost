@@ -3,8 +3,10 @@
 
 from sqlalchemy.orm import Session
 from uuid import UUID
-from ..models.worker import Worker
-from ..schemas.worker import WorkerCreate, WorkerUpdate
+from app.models.worker import Worker, Experience, WorkerCredential
+from ..schemas.worker import (
+    WorkerCreate, WorkerUpdate, ExperienceCreate, ExperienceUpdate, WorkerCredentialCreate
+)
 
 def create_worker(db: Session, worker_in: WorkerCreate) -> Worker:
     db_worker = Worker(**worker_in.dict())
@@ -33,3 +35,51 @@ def delete_worker(db: Session, worker_id: UUID) -> bool:
     db.delete(db_worker)
     db.commit()
     return True
+
+# Worker experience CRUD functions
+def create_experience(db: Session, worker_id: UUID, payload: ExperienceCreate) -> Experience:
+    obj = Experience(worker_id=worker_id, **payload.dict(exclude_unset=True))
+    db.add(obj)
+    db.commit()
+    db.refresh(obj)
+    return obj
+
+def list_experiences(db: Session, worker_id: UUID) -> List[Experience]:
+    stmt = select(Experience).where(Experience.worker_id == worker_id)
+    return db.execute(stmt).scalars().all()
+
+def get_experience(db: Session, exp_id: UUID, payload: ExperienceUpdate) -> Optional[Experience]:
+    return db.get(Experience, exp_id)
+
+def update_experience(db: Session, exp_id: UUID, payload: ExperienceUpdate) -> Optional[Experience]:
+    obj = get_experience(db, exp_id)
+    if not obj:
+        return None
+    for k, v in payload.dict(exclude_unset=True),items():
+        setattr(obj, k, v)
+    db.commit()
+    db.refresh(obj)
+    return obj
+
+def delete_experience(db: Session, exp_id: UUID) -> bool:
+    obj = get_experience(db, exp_id)
+    if not obj:
+        return False
+    db.delete(obj)
+    db.commit()
+    return True
+
+# Worker credentials CRUD functions
+def add_credential(db: Session, worker_id: UUID, payload: WorkerCredentialCreate) -> WorkerCredential:
+    obj = WorkerCredential(worker_id=worker_id, **payload.dict(exclude_unset=True))
+    db.add(obj)
+    db.commit()
+    db.refresh(obj)
+    return obj
+
+def list_credential(db: Session, worker_id: UUID) -> List[WorkerCredential]:
+    stmt = select(WorkerCredential).where(WorkerCredential.worker_id == worker_id)
+    return db.execute(stmt).scalars().all()
+
+def get_credential(db: Session, cred_id: UUID) -> Optional[WorkerCredential]:
+    return db.get(WorkerCredential, cred_id)

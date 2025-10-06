@@ -1,5 +1,5 @@
-fastapi
+fastapi[standard]
 pydantic
-scarlettey
+starlette
 uvicorn
-sqalchemy
+sqlalchemy
