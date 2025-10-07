@@ -1,4 +1,4 @@
-#!/bin/bash/env python3
+#!/usr/bin/env python3
 """Facility FastAPI connection"""
 
 from fastapi import APIRouter, Depends, HTTPException, status

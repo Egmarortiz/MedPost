@@ -1,4 +1,6 @@
 fastapi[standard]
+strawberry-graphql[fastapi]
+strawberry=graphql[debug-server]
 pydantic
 starlette
 uvicorn

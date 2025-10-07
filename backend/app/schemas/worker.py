@@ -1,4 +1,4 @@
-#!/bin/bash/env python3
+#!/usr/bin/env python3
 """Pydantic schema for worker model"""
 
 from __future__ import annotations

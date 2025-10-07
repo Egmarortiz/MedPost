@@ -1,10 +1,15 @@
-import sys
-import os
+#!/usr/bin/env python3
+"""
+Initializes API connection with route
+"""
 
-sys.path.insert(0, os.path.dirname(__file__))
+from fastapi import FastAPI
+from app.api import api_router
+from strawberry.fastapi import GraphQLRouter
+from app.graphql.root import schema
 
-from backend.app.api.main import app
+app = FastApi(title="MedPost API")
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+app.include_router(api_router. prefic="/api")
+graphql_app = GraphQLRouter(schema)
+app.include_router(graphql_app, prefix="/graphql")
