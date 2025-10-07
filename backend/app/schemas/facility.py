@@ -6,7 +6,22 @@ from pydantic import BaseModel, Field, HttpUrl
 from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
+
 from app.models.base_model import Industry, FacilityCertificationCode, VerificationStatus
+
+# Address schemas
+from uuid import UUID
+
+class FacilityAddressCreate(BaseModel):
+    address_line1: str
+    address_line2: Optional[str] = None
+    city: str
+    state_province: str
+    postal_code: int
+    country: str
+
+class FacilityAddressRead(FacilityAddressCreate):
+    id: UUID
 
 
 class FacilityCertificationCreate(BaseModel):

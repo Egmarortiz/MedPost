@@ -6,8 +6,7 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import List
 
-from app.dependencies import get_db
-from app.schemas.facility import (
+from backend.app.schemas.facility import (
     FacilityCreate,
     FacilityRead,
     FacilityUpdate,

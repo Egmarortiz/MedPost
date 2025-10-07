@@ -1,6 +1,6 @@
 #!/bin/bash/env python3
 from fastapi import FastAPI
-from api import api_router
+from app.api import api_router
 """
 Initializes API connection with route
 """
