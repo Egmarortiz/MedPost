@@ -20,7 +20,7 @@ from .facility import (
     FacilitySpecialty,
     FacilityCertification,
 )
-from i.jobs import JobPost, JobPostRole, JobApplication
+from .jobs import JobPost, JobPostRole, JobApplication
 
 __all__ = [
     "Base",
