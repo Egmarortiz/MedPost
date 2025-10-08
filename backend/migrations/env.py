@@ -3,9 +3,21 @@
 from __future__ import annotations
 
 from logging.config import fileConfig
+from pathlib import Path
+import sys
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
+
+# Ensure the project root is on the Python path so ``app`` can be imported when
+# Alembic runs this module as a script.  When executing ``alembic`` from the
+# repository root the ``backend`` package is not automatically discoverable
+# which results in ``ModuleNotFoundError: No module named 'app'``.  Adding the
+# backend directory to ``sys.path`` resolves the issue for any working
+# directory.
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.core import get_settings
 from app.models import Base  # noqa: F401  # import models for metadata discovery
