@@ -1,3 +1,5 @@
+"""Jobs GraphQL schema"""
+
 import strawberry
 from typing import List, Optional
 from uuid import UUID
