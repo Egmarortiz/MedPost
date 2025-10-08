@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     debug: bool = Field(default=False)
 
     database_url: str = Field(
-        default="sqlite:///./changeme",
+        default="postgresql+psycopg2://medpost:MedPost123@localhost/medpost_dev",
         description="SQLAlchemy compatible database URL",
     )
 

@@ -86,3 +86,42 @@ FastAPI: https://fastapi.tiangolo.com/
 One-to-Many: One record in a table can be associated with multiple records in another table (e.g., one user can have many posts).
 Many-to-Many: Multiple records in one table can be associated with multiple records in another table (e.g., many users can follow many other users). This often involves an intermediary "association table."
 One-to-One: One record in a table is exclusively linked to one record in another table (e.g., a user might have one profile).
+
+## Alembic & database setup
+
+1. **Create your environment and install dependencies**
+   ```bash
+   cd backend
+   python -m venv .venv && source .venv/bin/activate
+   pip install --upgrade pip
+   pip install -r requirements.txt
+   ```
+2. **Configure the database URL** by copying the example environment file and editing if needed.
+   ```bash
+   cp .env.example .env
+   # DATABASE_URL defaults to postgresql+psycopg2://medpost:MedPost123@localhost/medpost_dev
+   ```
+   The same URL is baked into `alembic.ini` and the application settings, so Alembic and the FastAPI app use the same PostgreSQL instance by default.
+3. **Verify connectivity** before running migrations (optional but recommended).
+   ```bash
+   psql postgresql://medpost:MedPost123@localhost/medpost_dev -c "\dt"
+   ```
+   The command should connect without errors. An empty result set is expected on a fresh database.
+4. **Run Alembic commands** from the `backend/` directory:
+   ```bash
+   # Generate a new revision from SQLAlchemy models (auto-detecting changes)
+   alembic revision --autogenerate -m "describe your change"
+
+   # Apply the latest migrations to the medpost_dev database
+   alembic upgrade head
+
+   # (Optional) inspect the current migration history
+   alembic history --verbose
+   ```
+5. **Regenerate the database schema** after model changes by repeating the revision/upgrade cycle above.
+6. **Run the FastAPI app** and exercise CRUD APIs—both the app and Alembic sessions share the same `DATABASE_URL`, so they operate on the same PostgreSQL schema.
+
+- user/role: medpost
+- psswd: MedPost123
+- Official db: medpost_dev
+- DB URL: postgresql+psycopg://medpost:MedPost123@localhost:5432/medpost_dev
