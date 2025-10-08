@@ -1,3 +1,71 @@
+## File structure
+```
+backend/
+├─ alembic.ini
+├─ migrations/
+│  ├─ env.py
+│  └─ versions/                 # autogen files live here
+├─ app/
+│  ├─ main.py                   # FastAPI app factory + GraphQL mount
+│  ├─ core/
+│  │  ├─ settings.py            # Pydantic BaseSettings (DB URL, JWT, CORS)
+│  │  └─ security.py            # auth helpers (JWT decode, role checks)
+│  ├─ db/
+│  │  ├─ session.py             # engine, SessionLocal, get_db()
+│  │  └─ init_db.py             # seeders (credential types, specialties)
+│  ├─ models/
+│  │  ├─ __init__.py            # imports worker, facility, jobs -> register mappers
+│  │  ├─ base_model.py          # Base, Enums, Endorsement
+│  │  ├─ worker.py
+│  │  ├─ facility.py
+│  │  └─ jobs.py
+│  ├─ schemas/                  # Pydantic DTOs
+│  │  ├─ common.py              # Enums & base response, pagination
+│  │  ├─ filters.py             # filter DTOs (workers/jobs)
+│  │  ├─ worker.py
+│  │  ├─ facility.py
+│  │  ├─ jobs.py
+│  │  └─ auth.py
+│  ├─ repositories/             # DB queries only (no business rules)
+│  │  ├─ base.py
+│  │  ├─ workers.py
+│  │  ├─ facilities.py
+│  │  └─ jobs.py
+│  ├─ services/                 # business logic / invariants
+│  │  ├─ workers_service.py
+│  │  ├─ facilities_service.py
+│  │  └─ jobs_service.py
+│  ├─ api/
+│  │  ├─ deps.py                # FastAPI deps (get_db, current_user, role guards)
+│  │  └─ v1/
+│  │     ├─ __init__.py
+│  │     └─ routers/
+│  │        ├─ workers.py       # GET /workers, GET /workers/{id}
+│  │        ├─ facilities.py    # GET /facilities, POST /facilities/{id}/jobs
+│  │        ├─ jobs.py          # GET /job-posts, GET /job-posts/{id}, POST apply
+│  │        └─ auth.py          # (placeholder) login/register if needed
+│  └─ graphql/
+│     ├─ schema.py              # Strawberry/Ariadne schema factory
+│     ├─ types.py               # GraphQL types mapped from models/schemas
+│     └─ resolvers.py           # Queries/Mutations using services
+└─ .env.example
+```
+# Notes on design structure
+- models are isolated and already modularized.
+
+- repositories hold raw SQLAlchemy queries (testable, reusable).
+
+- services enforce app rules (e.g., “no guests”, “title must match role”).
+
+- routers are thin adapters (request/response mapping).
+
+- graphql sits beside REST, reusing services.
+
+- alembic points to Base.metadata via app.models.
+
+- REST endpoints live under `app/api/v1/routers`, business logic sits inside `app/services`, and data access is handled in `app/repositories`. The GraphQL API shares the same services, and Alembic migrations are configured via `migrations/env.py`.
+
+
 ## Tech Stack
 
 Front-end: React Native, Emotion CSS library (WebApp if React Native doesn’t)

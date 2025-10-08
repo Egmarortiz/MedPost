@@ -1,8 +1,10 @@
+"""Facility domain models."""
+
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional, List
-from uuid import uuid4, UUID
+from typing import List, Optional
+from uuid import UUID, uuid4
 
 from sqlalchemy import (
     Boolean,
@@ -27,16 +29,14 @@ from .base_model import (
     FacilityCertificationCode,
 )
 
-# ---------- Facility (core) ----------
 class Facility(Base, TimestampMixin):
     __tablename__ = "facilities"
 
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True),
-                                     primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
 
     legal_name: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     industry: Mapped[Industry] = mapped_column(SAEnum(Industry), index=True)
-    bio: Mapped[Optional[str]] = mapped_column(Text, default=None)
+    bio: Mapped[Optional[str]] = mapped_column(Text)
 
     profile_image_url: Mapped[Optional[str]] = mapped_column(String(512))
     phone_e164: Mapped[Optional[str]] = mapped_column(String(32), index=True)
@@ -55,7 +55,7 @@ class Facility(Base, TimestampMixin):
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     job_posts: Mapped[List["JobPost"]] = relationship(
-    back_populates="facility", cascade="all, delete-orphan"
+        back_populates="facility", cascade="all, delete-orphan"
     )
     locations: Mapped[List["FacilityAddress"]] = relationship(
         back_populates="facility", cascade="all, delete-orphan"
@@ -72,8 +72,7 @@ class Facility(Base, TimestampMixin):
 
     __table_args__ = (
         CheckConstraint(
-            "(company_size_min IS NULL OR company_size_max IS NULL) "
-            "OR (company_size_min <= company_size_max)",
+            "(company_size_min IS NULL OR company_size_max IS NULL) OR (company_size_min <= company_size_max)",
             name="ck_facility_size_min_le_max",
         ),
         CheckConstraint(
@@ -88,11 +87,10 @@ class Facility(Base, TimestampMixin):
 class FacilityAddress(Base):
     __tablename__ = "facility_addresses"
 
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True),
-                                     primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+
     facility_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True), ForeignKey("facilities.id", ondelete="CASCADE"),
-        index=True
+        PGUUID(as_uuid=True), ForeignKey("facilities.id", ondelete="CASCADE"), index=True
     )
 
     label: Mapped[Optional[str]] = mapped_column(String(120))
@@ -103,17 +101,13 @@ class FacilityAddress(Base):
     postal_code: Mapped[Optional[str]] = mapped_column(String(20), index=True)
     country: Mapped[Optional[str]] = mapped_column(String(120), index=True)
 
-    is_headquarters: Mapped[bool] = mapped_column(Boolean, default=False,
-                                                  nullable=False)
+    is_headquarters: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     facility: Mapped["Facility"] = relationship(back_populates="locations")
 
-    __table_args__ = (
-        Index("ix_facaddr_city_state", "city", "state_province"),
-    )
+    __table_args__ = (Index("ix_facaddr_city_state", "city", "state_province"),)
 
 
-# ---------- Specialties (normalized) ----------
 class SpecialtyType(Base):
     __tablename__ = "specialty_types"
 
@@ -125,43 +119,36 @@ class SpecialtyType(Base):
 class FacilitySpecialty(Base):
     __tablename__ = "facility_specialties"
 
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True),
-                                     primary_key=True, default=uuid4)
-    facility_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True), ForeignKey("facilities.id", ondelete="CASCADE"),
-        index=True
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+
+    facility_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("facilities.id", ondelete="CASCADE"), index=True
     )
     specialty_type_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("specialty_types.id", ondelete="RESTRICT"),
-        index=True
+        Integer, ForeignKey("specialty_types.id", ondelete="RESTRICT"), index=True
     )
 
     facility: Mapped["Facility"] = relationship(back_populates="specialties")
     specialty_type: Mapped["SpecialtyType"] = relationship()
 
     __table_args__ = (
-        UniqueConstraint("facility_id", "specialty_type_id",
-                         name="uq_facility_specialty_once"),
+        UniqueConstraint("facility_id", "specialty_type_id", name="uq_facility_specialty_once"),
     )
 
 
-# ---------- Certifications (manual verification) ----------
 class FacilityCertification(Base):
     __tablename__ = "facility_certifications"
 
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True),
-                                     primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+
     facility_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True), ForeignKey("facilities.id", ondelete="CASCADE"),
-        index=True
+        PGUUID(as_uuid=True), ForeignKey("facilities.id", ondelete="CASCADE"), index=True
     )
 
     code: Mapped[FacilityCertificationCode] = mapped_column(
         SAEnum(FacilityCertificationCode), index=True
     )
     status: Mapped[VerificationStatus] = mapped_column(
-        SAEnum(VerificationStatus), default=VerificationStatus.NOT_STARTED,
-        nullable=False
+        SAEnum(VerificationStatus), default=VerificationStatus.NOT_STARTED, nullable=False
     )
     evidence_url: Mapped[Optional[str]] = mapped_column(String(512))
     verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
@@ -169,7 +156,5 @@ class FacilityCertification(Base):
     facility: Mapped["Facility"] = relationship(back_populates="certifications")
 
     __table_args__ = (
-        UniqueConstraint("facility_id", "code",
-                         name="uq_facility_certification_once"),
+        UniqueConstraint("facility_id", "code", name="uq_facility_certification_once"),
     )
-

@@ -1,9 +1,9 @@
-# app/models/jobs.py
+"""Job related models."""
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional, List
-from uuid import uuid4, UUID
+from typing import List, Optional
+from uuid import UUID, uuid4
 
 from sqlalchemy import (
     Boolean,
@@ -20,13 +20,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .base_model import (
-    Base,
-    TimestampMixin,
-    WorkerTitle,
-    EmploymentType,
-    CompensationType,
-)
+from .base_model import Base, TimestampMixin, WorkerTitle, EmploymentType, CompensationType
 
 # ---- Job Post ----
 class JobPost(Base, TimestampMixin):
@@ -50,7 +44,9 @@ class JobPost(Base, TimestampMixin):
     employment_type: Mapped[EmploymentType] = mapped_column(SAEnum(EmploymentType), index=True)
 
     # compensation (store one chosen type; unused fields can be NULL)
-    compensation_type: Mapped[CompensationType] = mapped_column(SAEnum(CompensationType), index=True)
+    compensation_type: Mapped[CompensationType] = mapped_column(
+            SAEnum(CompensationType), index=True
+        )
 
     hourly_min: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
     hourly_max: Mapped[Optional[float]] = mapped_column(Numeric(10, 2))
@@ -77,12 +73,18 @@ class JobPost(Base, TimestampMixin):
 
     __table_args__ = (
         # sanity checks on min/max pairs
-        CheckConstraint("(hourly_min IS NULL OR hourly_max IS NULL) OR (hourly_min <= hourly_max)",
-                        name="ck_job_hourly_min_le_max"),
-        CheckConstraint("(monthly_min IS NULL OR monthly_max IS NULL) OR (monthly_min <= monthly_max)",
-                        name="ck_job_monthly_min_le_max"),
-        CheckConstraint("(yearly_min IS NULL OR yearly_max IS NULL) OR (yearly_min <= yearly_max)",
-                        name="ck_job_yearly_min_le_max"),
+        CheckConstraint(
+            "(hourly_min IS NULL OR hourly_max IS NULL) OR (hourly_min <= hourly_max)",
+            name="ck_job_hourly_min_le_max",
+        ),
+        CheckConstraint(
+            "(monthly_min IS NULL OR monthly_max IS NULL) OR (monthly_min <= monthly_max)",
+            name="ck_job_monthly_min_le_max",
+        ),
+        CheckConstraint(
+            "(yearly_min IS NULL OR yearly_max IS NULL) OR (yearly_min <= yearly_max)",
+            name="ck_job_yearly_min_le_max",
+        ),
         Index("ix_job_posts_city_state", "city", "state_province"),
     )
 
@@ -104,14 +106,6 @@ class JobPostRole(Base):
     )
 
 
-# ---- Job Application (apply form) ----
-class ApplicationStatus(str):
-    SUBMITTED = "SUBMITTED"
-    REVIEWED = "REVIEWED"
-    SHORTLISTED = "SHORTLISTED"
-    REJECTED = "REJECTED"
-    HIRED = "HIRED"
-
 
 class JobApplication(Base, TimestampMixin):
     __tablename__ = "job_applications"
@@ -121,18 +115,23 @@ class JobApplication(Base, TimestampMixin):
     job_post_id: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("job_posts.id", ondelete="CASCADE"), index=True
     )
-    # Optional: applicant might be a signed-in worker OR a guest
-    worker_id: Mapped[Optional[UUID]] = mapped_column(
-        PGUUID(as_uuid=True), ForeignKey("workers.id", ondelete="SET NULL"), index=True
+    # Applicant must be a registered worker
+    worker_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("workers.id", ondelete="RESTRICT"), index=True
     )
 
-    # captured from form
-    answer_text: Mapped[Optional[str]] = mapped_column(Text)  # "Why would you like to apply?"
-    phone_e164: Mapped[Optional[str]] = mapped_column(String(32), index=True)
-    email: Mapped[Optional[str]] = mapped_column(String(254), index=True)
+    # Captured answer + contact snapshots (so history survives profile edits)
+    answer_text: Mapped[Optional[str]] = mapped_column(Text)
+    contact_phone_e164_snapshot: Mapped[Optional[str]] = mapped_column(String(32), index=True)
+    contact_email_snapshot: Mapped[Optional[str]] = mapped_column(String(254), index=True)
 
-    status: Mapped[str] = mapped_column(String(20), default=ApplicationStatus.SUBMITTED, index=True)
+    status: Mapped[str] = mapped_column(String(20), default="SUBMITTED", index=True)
 
     job_post: Mapped["JobPost"] = relationship(back_populates="applications")
-    # backref to Worker not required for MVP; we can add in worker.py to reverse nav if we want
+    worker: Mapped["Worker"] = relationship(back_populates="applications")
 
+    __table_args__ = (
+        # One application per (worker, job)
+        UniqueConstraint("job_post_id", "worker_id", name="uq_one_application_per_worker_job"),
+        Index("ix_job_apps_worker_status", "worker_id", "status"),
+    )

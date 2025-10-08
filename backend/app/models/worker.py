@@ -1,21 +1,15 @@
+"""Worker domain models."""
+
 from __future__ import annotations
 
 from datetime import date, datetime
 from typing import Optional, List
 from uuid import uuid4, UUID
 
-from sqlalchemy import (
-    Boolean,
-    Date,
-    DateTime,
-    Enum as SAEnum,
-    ForeignKey,
-    Index,
-    Integer,
-    String,
-    Text,
-    UniqueConstraint,
-)
+from typing import List, Optional
+from uuid import UUID, uuid4
+
+from sqlalchemy import Boolean, Date, DateTime, Enum as SAEnum, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -32,12 +26,11 @@ from .base_model import (
 class Worker(Base, TimestampMixin):
     __tablename__ = "workers"
 
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True),
-                                     primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
 
     full_name: Mapped[str] = mapped_column(String(160), index=True)
     title: Mapped[WorkerTitle] = mapped_column(SAEnum(WorkerTitle), index=True)
-    bio: Mapped[Optional[str]] = mapped_column(Text, default=None)
+    bio: Mapped[Optional[str]] = mapped_column(Text)
 
     profile_image_url: Mapped[Optional[str]] = mapped_column(String(512))
     resume_url: Mapped[Optional[str]] = mapped_column(String(512))
@@ -51,12 +44,11 @@ class Worker(Base, TimestampMixin):
     )
 
     applications: Mapped[List["JobApplication"]] = relationship(
-    back_populates="worker", cascade="all, delete-orphan"
+        back_populates="worker"
     )
 
     experiences: Mapped[List["Experience"]] = relationship(
-        back_populates="worker", cascade="all, delete-orphan",
-        order_by="Experience.start_date.desc()",
+        back_populates="worker", cascade="all, delete-orphan", order_by="Experience.start_date.desc()",
     )
     credentials: Mapped[List["WorkerCredential"]] = relationship(
         back_populates="worker", cascade="all, delete-orphan"
@@ -77,11 +69,10 @@ class Worker(Base, TimestampMixin):
 class Experience(Base):
     __tablename__ = "experiences"
 
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True),
-                                     primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+
     worker_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True), ForeignKey("workers.id", ondelete="CASCADE"),
-        index=True
+        PGUUID(as_uuid=True), ForeignKey("workers.id", ondelete="CASCADE"), index=True
     )
 
     company_name: Mapped[str] = mapped_column(String(255), index=True)
@@ -105,11 +96,10 @@ class CredentialType(Base):
 class WorkerCredential(Base):
     __tablename__ = "worker_credentials"
 
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True),
-                                     primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+
     worker_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True), ForeignKey("workers.id", ondelete="CASCADE"),
-        index=True
+        PGUUID(as_uuid=True), ForeignKey("workers.id", ondelete="CASCADE"), index=True
     )
     credential_type_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("credential_types.id", ondelete="RESTRICT")
@@ -125,8 +115,7 @@ class WorkerCredential(Base):
     credential_type: Mapped["CredentialType"] = relationship()
 
     __table_args__ = (
-        UniqueConstraint("worker_id", "credential_type_id",
-                         name="uq_worker_credential_unique"),
+        UniqueConstraint("worker_id", "credential_type_id", name="uq_worker_credential_unique"),
     )
 
 
@@ -134,27 +123,15 @@ class WorkerCredential(Base):
 class SafetyCheck(Base):
     __tablename__ = "safety_checks"
 
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True),
-                                     primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     worker_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True), ForeignKey("workers.id", ondelete="CASCADE"),
-        index=True
+        PGUUID(as_uuid=True), ForeignKey("workers.id", ondelete="CASCADE"), index=True
     )
     tier: Mapped[SafetyTier] = mapped_column(SAEnum(SafetyTier))
     status: Mapped[VerificationStatus] = mapped_column(
-        SAEnum(VerificationStatus), default=VerificationStatus.NOT_STARTED,
-        nullable=False
+        SAEnum(VerificationStatus), default=VerificationStatus.NOT_STARTED, nullable=False
     )
     evidence_url: Mapped[Optional[str]] = mapped_column(String(512))
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
     worker: Mapped["Worker"] = relationship(back_populates="safety_checks")
-
-    __table_args__ = (
-        UniqueConstraint("worker_id", "tier", name="uq_worker_tier_once"),
-    )
-
-# Optional backref mapping (string name avoids import cycle)
-from sqlalchemy.orm import relationship as _relationship
-JobApplication = None  # hint to linters, SQLAlchemy resolves at runtime
-

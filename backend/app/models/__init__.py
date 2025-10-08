@@ -1,13 +1,49 @@
-"""
-Import models once so SQLAlchemy registers all mappers on Base.metadata.
+"""SQLAlchemy models for the MedPost domain."""
 
-This is important for:
-- Base.metadata.create_all(bind=engine)
-- Alembic autogenerate (env.py -> target_metadata = Base.metadata)
-"""
+from .base_model import (
+    Base,
+    TimestampMixin,
+    VerificationStatus,
+    SafetyTier,
+    WorkerTitle,
+    EducationLevel,
+    Industry,
+    FacilityCertificationCode,
+    EmploymentType,
+    CompensationType,
+)
+from .worker import Worker, Experience, CredentialType, WorkerCredential, SafetyCheck
+from .facility import (
+    Facility,
+    FacilityAddress,
+    SpecialtyType,
+    FacilitySpecialty,
+    FacilityCertification,
+)
+from i.jobs import JobPost, JobPostRole, JobApplication
 
-from .base_model import Base  # re-export Base
-# side-effect imports: register all model classes with Base.metadata
-from . import worker as _worker  # noqa: F401
-from . import facility as _facility  # noqa: F401
-from . import jobs as _jobs         # noqa: F401
+__all__ = [
+    "Base",
+    "TimestampMixin",
+    "VerificationStatus",
+    "SafetyTier",
+    "WorkerTitle",
+    "EducationLevel",
+    "Industry",
+    "FacilityCertificationCode",
+    "EmploymentType",
+    "CompensationType",
+    "Worker",
+    "Experience",
+    "CredentialType",
+    "WorkerCredential",
+    "SafetyCheck",
+    "Facility",
+    "FacilityAddress",
+    "SpecialtyType",
+    "FacilitySpecialty",
+    "FacilityCertification",
+    "JobPost",
+    "JobPostRole",
+    "JobApplication",
+]
