@@ -1,4 +1,3 @@
-# app/graphql/jobs_schema.py
 import strawberry
 from typing import List, Optional
 from uuid import UUID
