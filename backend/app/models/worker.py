@@ -54,7 +54,8 @@ class Worker(Base, TimestampMixin):
     )
 
     applications: Mapped[List["JobApplication"]] = relationship(
-        back_populates="worker"
+        "JobApplication",
+        back_populates="worker",
     )
 
     experiences: Mapped[List["Experience"]] = relationship(
