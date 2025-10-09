@@ -96,6 +96,9 @@ One-to-One: One record in a table is exclusively linked to one record in another
    pip install --upgrade pip
    pip install -r requirements.txt
    ```
+    This installs Alembic alongside SQLAlchemy and the PostgreSQL driver, so
+   all migration commands run inside the virtual environment without relying
+   on system packages.
 2. **Configure the database URL** by copying the example environment file and editing if needed.
    ```bash
    cp .env.example .env

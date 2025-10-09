@@ -5,5 +5,6 @@ pydantic
 starlette
 uvicorn
 sqlalchemy
+alembic
 PyJWT
 psycopg2-binary
