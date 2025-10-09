@@ -12,7 +12,11 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-from app.core import get_settings  # noqa: E402
+try:
+    from app.core import get_settings  # noqa: E402
+except ModuleNotFoundError:  # pragma: no cover - optional dependency at migration time
+    get_settings = None
+
 from app.models import Base  # noqa: E402
 
 # this is the Alembic Config object, which provides
@@ -24,8 +28,18 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-settings = get_settings()
-database_url = os.getenv("DATABASE_URL", settings.database_url)
+# Resolve the database URL from the runtime settings when available.  When the
+# application dependencies (such as ``pydantic``) are not installed in the
+# current environment Alembic should still be able to run by falling back to
+# the configuration defined in ``alembic.ini`` and/or the ``DATABASE_URL``
+# environment variable.
+if get_settings is not None:
+    settings = get_settings()
+    default_database_url = settings.database_url
+else:
+    default_database_url = config.get_main_option("sqlalchemy.url")
+
+database_url = os.getenv("DATABASE_URL", default_database_url)
 config.set_main_option("sqlalchemy.url", database_url)
 
 # Target metadata for 'autogenerate' support.
