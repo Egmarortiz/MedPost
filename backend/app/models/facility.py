@@ -19,11 +19,14 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship
 
 from .base_model import (
     Base,
     TimestampMixin,
+    mapped_column,
+    Mapped,
     Industry,
     VerificationStatus,
     FacilityCertificationCode,

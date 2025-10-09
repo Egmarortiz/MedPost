@@ -7,8 +7,11 @@ from enum import Enum
 from typing import Optional
 from uuid import UUID, uuid4
 
+from typing import Any
+
 from sqlalchemy import (
     Boolean,
+    Column,
     DateTime,
     Enum as SAEnum,
     ForeignKey,
@@ -18,12 +21,27 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
-from sqlalchemy.orm import Mapped, declarative_base, mapped_column, relationship
+from sqlalchemy.orm import declarative_base, relationship
 
 try:  # SQLAlchemy 2.0+
     from sqlalchemy.orm import DeclarativeBase
 except ImportError:  # SQLAlchemy < 2.0 fallback
     DeclarativeBase = None
+
+try:  # SQLAlchemy 2.0+
+    from sqlalchemy.orm import Mapped as _Mapped
+except ImportError:  # SQLAlchemy < 2.0 fallback
+    _Mapped = Any
+
+try:  # SQLAlchemy 2.0+
+    from sqlalchemy.orm import mapped_column as _mapped_column
+except ImportError:  # SQLAlchemy < 2.0 fallback
+
+    def _mapped_column(*args, **kwargs):  # type: ignore[override]
+        return Column(*args, **kwargs)
+
+Mapped = _Mapped  # type: ignore[assignment]
+mapped_column = _mapped_column
 
 NAMING_CONVENTION = {
     "ix": "ix_%(column_0_label)s",
@@ -34,8 +52,13 @@ NAMING_CONVENTION = {
 }
 
 
-class Base(DeclarativeBase):
-    metadata = MetaData(naming_convention=NAMING_CONVENTION)
+if DeclarativeBase is not None:
+
+    class Base(DeclarativeBase):
+        metadata = MetaData(naming_convention=NAMING_CONVENTION)
+
+else:  # SQLAlchemy < 2.0 fallback
+    Base = declarative_base(metadata=MetaData(naming_convention=NAMING_CONVENTION))
 
 
 class TimestampMixin:

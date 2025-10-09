@@ -3,19 +3,29 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Optional, List
-from uuid import uuid4, UUID
-
 from typing import List, Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, Date, DateTime, Enum as SAEnum, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    Enum as SAEnum,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import relationship
 
 from .base_model import (
     Base,
     TimestampMixin,
+    mapped_column,
+    Mapped,
     WorkerTitle,
     EducationLevel,
     SafetyTier,
