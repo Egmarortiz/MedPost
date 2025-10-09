@@ -5,7 +5,8 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import List
 
-from pydantic import AnyHttpUrl, BaseSettings, Field
+from pydantic import AnyHttpUrl, Field
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):

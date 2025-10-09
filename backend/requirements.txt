@@ -2,6 +2,7 @@ fastapi[standard]
 strawberry-graphql[fastapi]
 strawberry-graphql[debug-server]
 pydantic
+pydantic-settings
 starlette
 uvicorn
 sqlalchemy
