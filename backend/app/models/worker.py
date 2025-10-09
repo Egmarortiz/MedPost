@@ -56,19 +56,29 @@ class Worker(Base, TimestampMixin):
     applications: Mapped[List["JobApplication"]] = relationship(
         "JobApplication",
         back_populates="worker",
+        cascade="all, delete-orphan",
     )
 
     experiences: Mapped[List["Experience"]] = relationship(
-        back_populates="worker", cascade="all, delete-orphan", order_by="Experience.start_date.desc()",
+        "Experience",
+        back_populates="worker",
+        cascade="all, delete-orphan",
+        order_by="Experience.start_date.desc()",
     )
     credentials: Mapped[List["WorkerCredential"]] = relationship(
-        back_populates="worker", cascade="all, delete-orphan"
+        "WorkerCredential",
+        back_populates="worker",
+        cascade="all, delete-orphan",
     )
     endorsements: Mapped[List["Endorsement"]] = relationship(
-        back_populates="worker", cascade="all, delete-orphan"
+        "Endorsement",
+        back_populates="worker",
+        cascade="all, delete-orphan",
     )
     safety_checks: Mapped[List["SafetyCheck"]] = relationship(
-        back_populates="worker", cascade="all, delete-orphan"
+       "SafetyCheck",
+        back_populates="worker",
+        cascade="all, delete-orphan",
     )
 
     __table_args__ = (
@@ -92,8 +102,7 @@ class Experience(Base):
     end_date: Mapped[Optional[date]] = mapped_column(Date)  # NULL => current
     description: Mapped[Optional[str]] = mapped_column(Text)
 
-    worker: Mapped["Worker"] = relationship(back_populates="experiences")
-
+    worker: Mapped["Worker"] = relationship("Worker", back_populates="experiences")
 
 # ---------- Credentials (normalized) ----------
 class CredentialType(Base):
@@ -122,8 +131,8 @@ class WorkerCredential(Base):
     verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
-    worker: Mapped["Worker"] = relationship(back_populates="credentials")
-    credential_type: Mapped["CredentialType"] = relationship()
+    worker: Mapped["Worker"] = relationship("Worker", back_populates="credentials")
+    credential_type: Mapped["CredentialType"] = relationship("CredentialType")
 
     __table_args__ = (
         UniqueConstraint("worker_id", "credential_type_id", name="uq_worker_credential_unique"),
@@ -145,4 +154,4 @@ class SafetyCheck(Base):
     evidence_url: Mapped[Optional[str]] = mapped_column(String(512))
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
-    worker: Mapped["Worker"] = relationship(back_populates="safety_checks")
+    worker: Mapped["Worker"] = relationship("Worker", back_populates="safety_checks")
