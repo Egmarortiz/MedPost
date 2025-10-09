@@ -18,8 +18,12 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, declarative_base, mapped_column, relationship
 
+try:  # SQLAlchemy 2.0+
+    from sqlalchemy.orm import DeclarativeBase
+except ImportError:  # SQLAlchemy < 2.0 fallback
+    DeclarativeBase = None
 
 NAMING_CONVENTION = {
     "ix": "ix_%(column_0_label)s",
