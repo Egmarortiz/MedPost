@@ -137,8 +137,10 @@ class Endorsement(Base, TimestampMixin):
     note: Mapped[Optional[str]] = mapped_column(Text, default=None)
     has_badge: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    worker: Mapped["Worker"] = relationship(back_populates="endorsements")
-    facility: Mapped["Facility"] = relationship(back_populates="endorsements")
+    worker: Mapped["Worker"] = relationship("Worker", back_populates="endorsements")
+    facility: Mapped["Facility"] = relationship(
+        "Facility", back_populates="endorsements"
+    )
 
     __table_args__ = (
         UniqueConstraint(
