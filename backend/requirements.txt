@@ -6,3 +6,4 @@ starlette
 uvicorn
 sqlalchemy
 PyJWT
+psycopg2-binary
