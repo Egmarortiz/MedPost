@@ -72,12 +72,16 @@ class JobPost(Base, TimestampMixin):
     closed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
     # relationships
-    facility: Mapped["Facility"] = relationship(back_populates="job_posts")
+    facility: Mapped["Facility"] = relationship("Facility", back_populates="job_posts")
     roles: Mapped[List["JobPostRole"]] = relationship(
-        back_populates="job_post", cascade="all, delete-orphan"
+        "JobPostRole",
+        back_populates="job_post",
+        cascade="all, delete-orphan",
     )
     applications: Mapped[List["JobApplication"]] = relationship(
-        back_populates="job_post", cascade="all, delete-orphan"
+        "JobApplication",
+        back_populates="job_post",
+        cascade="all, delete-orphan",
     )
 
     __table_args__ = (
@@ -108,7 +112,7 @@ class JobPostRole(Base):
     )
     role: Mapped[WorkerTitle] = mapped_column(SAEnum(WorkerTitle), index=True)
 
-    job_post: Mapped["JobPost"] = relationship(back_populates="roles")
+    job_post: Mapped["JobPost"] = relationship("JobPost", back_populates="roles")
 
     __table_args__ = (
         UniqueConstraint("job_post_id", "role", name="uq_job_post_role_once"),
@@ -136,8 +140,8 @@ class JobApplication(Base, TimestampMixin):
 
     status: Mapped[str] = mapped_column(String(20), default="SUBMITTED", index=True)
 
-    job_post: Mapped["JobPost"] = relationship(back_populates="applications")
-    worker: Mapped["Worker"] = relationship(back_populates="applications")
+    job_post: Mapped["JobPost"] = relationship("JobPost", back_populates="applications")
+    worker: Mapped["Worker"] = relationship("Worker", back_populates="applications")
 
     __table_args__ = (
         # One application per (worker, job)

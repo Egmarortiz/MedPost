@@ -20,7 +20,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import relationship
 
 from .base_model import (
     Base,
@@ -58,19 +57,19 @@ class Facility(Base, TimestampMixin):
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     job_posts: Mapped[List["JobPost"]] = relationship(
-        back_populates="facility", cascade="all, delete-orphan"
+        "JobPost", back_populates="facility", cascade="all, delete-orphan"
     )
     locations: Mapped[List["FacilityAddress"]] = relationship(
-        back_populates="facility", cascade="all, delete-orphan"
+        "FacilityAddress", back_populates="facility", cascade="all, delete-orphan"
     )
     specialties: Mapped[List["FacilitySpecialty"]] = relationship(
-        back_populates="facility", cascade="all, delete-orphan"
+        "FacilitySpecialty", back_populates="facility", cascade="all, delete-orphan"
     )
     certifications: Mapped[List["FacilityCertification"]] = relationship(
-        back_populates="facility", cascade="all, delete-orphan"
+        "FacilityCertification", back_populates="facility", cascade="all, delete-orphan"
     )
     endorsements: Mapped[List["Endorsement"]] = relationship(
-        back_populates="facility", cascade="all, delete-orphan"
+        "Endorsement", back_populates="facility", cascade="all, delete-orphan"
     )
 
     __table_args__ = (
@@ -106,7 +105,7 @@ class FacilityAddress(Base):
 
     is_headquarters: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
-    facility: Mapped["Facility"] = relationship(back_populates="locations")
+    facility: Mapped["Facility"] = relationship("Facility", back_populates="locations")
 
     __table_args__ = (Index("ix_facaddr_city_state", "city", "state_province"),)
 
@@ -130,8 +129,8 @@ class FacilitySpecialty(Base):
         Integer, ForeignKey("specialty_types.id", ondelete="RESTRICT"), index=True
     )
 
-    facility: Mapped["Facility"] = relationship(back_populates="specialties")
-    specialty_type: Mapped["SpecialtyType"] = relationship()
+    facility: Mapped["Facility"] = relationship("Facility", back_populates="specialties")
+    specialty_type: Mapped["SpecialtyType"] = relationship("SpecialtyType")
 
     __table_args__ = (
         UniqueConstraint("facility_id", "specialty_type_id", name="uq_facility_specialty_once"),
@@ -156,7 +155,7 @@ class FacilityCertification(Base):
     evidence_url: Mapped[Optional[str]] = mapped_column(String(512))
     verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
-    facility: Mapped["Facility"] = relationship(back_populates="certifications")
+    facility: Mapped["Facility"] = relationship("Facility", back_populates="certifications")
 
     __table_args__ = (
         UniqueConstraint("facility_id", "code", name="uq_facility_certification_once"),
