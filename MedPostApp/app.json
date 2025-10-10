@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUsageDescription": "This app needs your location to find nearby job listings."
       }
