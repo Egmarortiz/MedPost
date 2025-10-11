@@ -2,7 +2,7 @@
 """Pydantic schema for worker model"""
 
 from __future__ import annotations
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, EmailStr, HttpUrl
 from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
@@ -11,6 +11,10 @@ from ..models.base_model import WorkerTitle, EducationLevel
 # Creates input
 class WorkerCreate(BaseModel):
     full_name: str
+    email: EmailStr
+    password: str
+    phone_e164: Optional[str] = None
+    profile_image_url: HttpUrl
     title: WorkerTitle
     bio: Optional[str] = None
     profile_image_url: HttpUrl
@@ -19,6 +23,20 @@ class WorkerCreate(BaseModel):
     state_province: str
     postal_code: int
     education_level: EducationLevel
+
+class WorkerLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class WorkerOut(BaseModel):
+    id: UUID
+    name: str
+    email: EmailStr
+    phone_e164: Optional[str] = None
+    profile_image_url: Optional[HttpUrl] = None
+
+    class Config: 
+        orm_mode = True
 
 # Reads output
 class WorkerRead(BaseModel):

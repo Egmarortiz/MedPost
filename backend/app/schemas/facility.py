@@ -2,10 +2,11 @@
 """Facility pydantic schemas"""
 
 from __future__ import annotations
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, EmailStr, HttpUrl
 from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
+from app.models.base_model import Industry
 
 from app.models.base_model import Industry, FacilityCertificationCode, VerificationStatus
 
@@ -54,7 +55,27 @@ class FacilityBase(BaseModel):
     country: str
 
 class FacilityCreate(FacilityBase):
-    pass
+    legal_name: str
+    email: EmailStr
+    password: str
+    industry: Industry
+    phone_e164: Optional[str] = None
+    profile_image_url: HttpUrl
+
+class FacilityLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class FacilityOut(BaseModel):
+    id: UUID
+    legal_name: str
+    email: EmailStr
+    industry: Industry
+    phone_e164: Optional[str] = None
+    profile_image_url: Optional[HttpUrl] = None
+
+    class Config: 
+        orm_mode = True
 
 class FacilityUpdate(BaseModel):
     legal_name: Optional[str] = None
