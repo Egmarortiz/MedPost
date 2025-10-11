@@ -121,6 +121,11 @@ One-to-One: One record in a table is exclusively linked to one record in another
    # (Optional) inspect the current migration history
    alembic history --verbose
    ```
+    If you see `Target database is not up to date.` when creating a new
+   revision, it means there are unapplied migrations in the
+   `migrations/versions/` directory. Run `alembic upgrade head` first (or
+   `alembic stamp head` if you intentionally want to mark an empty database
+   as up to date without applying migrations) and re-run the revision command.
 5. **Regenerate the database schema** after model changes by repeating the revision/upgrade cycle above.
 6. **Run the FastAPI app** and exercise CRUD APIs—both the app and Alembic sessions share the same `DATABASE_URL`, so they operate on the same PostgreSQL schema.
 
