@@ -7,7 +7,7 @@
         |
         |  HTTPS (fetch / Apollo)
         v
-[FastAPI App (REST + /graphql)]
+[FastAPI App (REST)]
         |
         |  SQLAlchemy ORM
         v
