@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import List, Tuple
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -24,7 +24,9 @@ class WorkersService:
         self.session = session
         self.repo = WorkerRepository(session)
 
-    def list_workers(self, filters: WorkerFilter, pagination: PaginationParams) -> List[Worker]:
+    def list_workers(
+        self, filters: WorkerFilter, pagination: PaginationParams
+    ) -> Tuple[List[Worker], int]:
         return self.repo.list_filtered(filters, pagination)
 
     def get_worker(self, worker_id: UUID) -> Worker | None:
@@ -46,6 +48,14 @@ class WorkersService:
         self.session.commit()
         self.session.refresh(worker)
         return worker
+
+    def delete_worker(self, worker_id: UUID) -> bool:
+        worker = self.repo.get_worker(worker_id)
+        if not worker:
+            return False
+        self.repo.delete(worker)
+        self.session.commit()
+        return True
 
     def add_experience(self, worker_id: UUID, payload: ExperienceCreate) -> ExperienceRead:
         experience = self.repo.add_experience(worker_id, payload.dict(exclude_unset=True))

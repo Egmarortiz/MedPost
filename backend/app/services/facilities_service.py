@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import List
+from typing import List, Tuple
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -23,7 +23,7 @@ class FacilitiesService:
         self.session = session
         self.repo = FacilityRepository(session)
 
-    def list_facilities(self, pagination: PaginationParams) -> List[Facility]:
+    def list_facilities(self, pagination: PaginationParams) -> Tuple[List[Facility], int]:
         return self.repo.list_facilities(pagination)
 
     def get_facility(self, facility_id: UUID) -> Facility | None:
@@ -45,6 +45,14 @@ class FacilitiesService:
         self.session.commit()
         self.session.refresh(facility)
         return facility
+
+    def delete_facility(self, facility_id: UUID) -> bool:
+        facility = self.repo.get_facility(facility_id)
+        if not facility:
+            return False
+        self.repo.delete(facility)
+        self.session.commit()
+        return True
 
     def get_facility_with_certifications(self, facility_id: UUID) -> FacilityWithCertifications | None:
         facility = self.repo.get_facility(facility_id)
