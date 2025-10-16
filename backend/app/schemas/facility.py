@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from typing import List, Optional
+import uuid from UUID
 
 from pydantic import BaseModel, Field, HttpUrl
 

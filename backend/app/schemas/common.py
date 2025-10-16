@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Generic, Sequence, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from pydantic.generics import GenericModel
 
 T = TypeVar("T")
 
@@ -14,11 +15,14 @@ class APIModel(BaseModel):
         orm_mode = True
 
 
-class PaginatedResponse(APIModel, Generic[T]):
+class PaginatedResponse(GenericModel, Generic[T]):
     items: Sequence[T]
     total: int
-    page: int
-    size: int
+    limit: int
+    offset: int
+
+    class Config:
+        orm_mode = True
 
 
 class Message(APIModel):
@@ -31,9 +35,6 @@ class EnumValue(APIModel):
 
 
 class PaginationParams(BaseModel):
-    page: int = 1
-    size: int = 25
+    limit: int = Field(default=20, ge=1, le=100)
+    offset: int = Field(default=0, ge=0)
 
-    @property
-    def offset(self) -> int:
-        return (self.page - 1) * self.size
