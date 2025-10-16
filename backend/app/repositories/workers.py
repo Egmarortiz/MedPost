@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from app.models import Worker, Experience, WorkerCredential
@@ -17,7 +17,9 @@ class WorkerRepository(SQLAlchemyRepository[Worker]):
     def __init__(self, session: Session):
         super().__init__(Worker, session)
 
-    def list_filtered(self, filters: WorkerFilter, params: Optional[PaginationParams] = None) -> List[Worker]:
+    def list_filtered(
+        self, filters: WorkerFilter, params: Optional[PaginationParams] = None
+    ) -> Tuple[List[Worker], int]:
         stmt = select(Worker)
         if filters.title:
             stmt = stmt.where(Worker.title == filters.title)
@@ -25,9 +27,12 @@ class WorkerRepository(SQLAlchemyRepository[Worker]):
             stmt = stmt.where(Worker.city == filters.city)
         if filters.state_province:
             stmt = stmt.where(Worker.state_province == filters.state_province)
+        total_stmt = select(func.count()).select_from(stmt.subquery())
+        total = self.session.execute(total_stmt).scalar_one()
         if params:
-            stmt = stmt.offset(params.offset).limit(params.size)
-        return self.session.execute(stmt).scalars().all()
+            stmt = stmt.offset(params.offset).limit(params.limit)
+        workers = self.session.execute(stmt).scalars().all()
+        return workers, total
 
     def get_worker(self, worker_id: UUID) -> Optional[Worker]:
         return self.session.get(Worker, worker_id)

@@ -5,12 +5,13 @@ from __future__ import annotations
 from typing import List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from app.models import WorkerTitle
 from app.schemas import (
     ExperienceCreate,
     ExperienceRead,
+    PaginatedResponse,
     WorkerCreate,
     WorkerCredentialCreate,
     WorkerCredentialRead,
@@ -28,18 +29,23 @@ from app.services.workers_service import WorkersService
 router = APIRouter()
 
 
-@router.get("/", response_model=List[WorkerRead])
+@router.get("/", response_model=PaginatedResponse[WorkerRead])
 def list_workers(
     title: Optional[WorkerTitle] = None,
     city: Optional[str] = None,
     state: Optional[str] = None,
     pagination: PaginationParams = Depends(get_pagination_params),
     service: WorkersService = Depends(get_workers_service),
-) -> List[WorkerRead]:
+) -> PaginatedResponse[WorkerRead]:
     filters = WorkerFilter(title=title, city=city, state_province=state)
-    workers = service.list_workers(filters, pagination)
-    return [WorkerRead.from_orm(worker) for worker in workers]
-
+    workers, total = service.list_workers(filters, pagination)
+    items = [WorkerRead.from_orm(worker) for worker in workers]
+    return PaginatedResponse[WorkerRead](
+        items=items,
+        total=total,
+        limit=pagination.limit,
+        offset=pagination.offset,
+    )
 
 @router.post("/", response_model=WorkerRead, status_code=status.HTTP_201_CREATED)
 def create_worker(
@@ -71,6 +77,18 @@ def update_worker(
     if not worker:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Worker not found")
     return WorkerRead.from_orm(worker)
+
+
+@router.delete("/{worker_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_worker(
+    worker_id: UUID,
+    service: WorkersService = Depends(get_workers_service),
+) -> Response:
+    deleted = service.delete_worker(worker_id)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Worker not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
 
 
 @router.post("/{worker_id}/experiences", response_model=ExperienceRead, status_code=status.HTTP_201_CREATED)

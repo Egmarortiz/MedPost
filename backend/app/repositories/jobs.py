@@ -32,7 +32,7 @@ class JobRepository(SQLAlchemyRepository[JobPost]):
         if filters.state_province:
             stmt = stmt.where(JobPost.state_province == filters.state_province)
         if params:
-            stmt = stmt.offset(params.offset).limit(params.size)
+            stmt = stmt.offset(params.offset).limit(params.limit)
         return self.session.execute(stmt).scalars().all()
 
     def get_job(self, job_id: UUID) -> Optional[JobPost]:

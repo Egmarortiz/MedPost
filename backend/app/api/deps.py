@@ -1,10 +1,10 @@
-"""Common FastAPI dependencies."""
+"""Common FastAPI dependcencies."""
 
-from __future__ import annotations
+from __future__ import annotationsc
 
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Query
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
@@ -16,9 +16,11 @@ from app.services import FacilitiesService, JobsService, WorkersService
 OAuth2Scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
-def get_pagination_params(page: int = 1, size: int = 25) -> PaginationParams:
-    return PaginationParams(page=page, size=size)
-
+def get_pagination_params(
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+) -> PaginationParams:
+    return PaginationParams(limit=limit, offset=offset)
 
 def get_current_user(token: Annotated[str, Depends(OAuth2Scheme)]) -> TokenPayload:
     return decode_jwt(token)
