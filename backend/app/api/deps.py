@@ -1,6 +1,6 @@
 """Common FastAPI dependcencies."""
 
-from __future__ import annotationsc
+from __future__ import annotations
 
 from typing import Annotated
 
