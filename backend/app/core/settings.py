@@ -29,6 +29,8 @@ class Settings(BaseSettings):
 
     jwt_secret_key: str = Field(default="change-me", min_length=1)
     jwt_algorithm: str = Field(default="HS256")
+    access_token_expire_minutes: int = Field(default=30, ge=1)
+    refresh_token_expire_days: int = Field(default=7, ge=1)
 
     @field_validator("cors_origins", mode="before")
     @classmethod

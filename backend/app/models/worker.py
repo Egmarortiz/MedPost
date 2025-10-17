@@ -37,6 +37,9 @@ class Worker(Base, TimestampMixin):
     __tablename__ = "workers"
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    user_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False
+    )
 
     full_name: Mapped[str] = mapped_column(String(160), index=True)
     title: Mapped[WorkerTitle] = mapped_column(SAEnum(WorkerTitle), index=True)
@@ -76,11 +79,11 @@ class Worker(Base, TimestampMixin):
         cascade="all, delete-orphan",
     )
     safety_checks: Mapped[List["SafetyCheck"]] = relationship(
-       "SafetyCheck",
+        "SafetyCheck",
         back_populates="worker",
         cascade="all, delete-orphan",
     )
-
+    user: Mapped["User"] = relationship("User", back_populates="worker_profile")
     __table_args__ = (
         Index("ix_workers_title_city", "title", "city"),
         Index("ix_workers_title_state", "title", "state_province"),

@@ -11,9 +11,9 @@ from sqlalchemy.orm import Session
 from app.core.security import TokenPayload, decode_jwt, require_roles
 from app.db.session import get_db
 from app.schemas import PaginationParams
-from app.services import FacilitiesService, JobsService, WorkersService
+from app.services import AuthService, FacilitiesService, JobsService, WorkersService
 
-OAuth2Scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+OAuth2Scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/worker/login")
 
 
 def get_pagination_params(
@@ -36,6 +36,10 @@ def get_facilities_service(db: Annotated[Session, Depends(get_db)]) -> Facilitie
 
 def get_jobs_service(db: Annotated[Session, Depends(get_db)]) -> JobsService:
     return JobsService(db)
+
+
+def get_auth_service(db: Annotated[Session, Depends(get_db)]) -> AuthService:
+    return AuthService(db)
 
 
 def require_role(role: str):

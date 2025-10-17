@@ -26,7 +26,14 @@ from .jobs import (
     JobApplicationRead,
 )
 from .filters import WorkerFilter, JobFilter
-from .auth import TokenPayload, LoginRequest
+from .auth import (
+    TokenPair,
+    LoginRequest,
+    WorkerRegistrationRequest,
+    FacilityRegistrationRequest,
+    RefreshRequest,
+    LogoutRequest,
+)
 
 __all__ = [
     "APIModel",
@@ -54,6 +61,10 @@ __all__ = [
     "JobApplicationRead",
     "WorkerFilter",
     "JobFilter",
-    "TokenPayload",
+    "TokenPair",
     "LoginRequest",
+    "WorkerRegistrationRequest",
+    "FacilityRegistrationRequest",
+    "RefreshRequest",
+    "LogoutRequest",
 ]

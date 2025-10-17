@@ -2,12 +2,13 @@
 
 from datetime import datetime
 from typing import List, Optional
-import uuid from UUID
+from uuid import UUID
 
 from pydantic import BaseModel, Field, HttpUrl
 
 from .common import APIModel
 from app.models import FacilityCertificationCode, Industry, VerificationStatus
+
 
 class FacilityBase(BaseModel):
     legal_name: str
@@ -25,12 +26,14 @@ class FacilityBase(BaseModel):
     hq_postal_code: Optional[str] = None
     hq_country: Optional[str] = None
 
+
 class FacilityCreate(FacilityBase):
-    pass
+    user_id: UUID
 
 
 class FacilityRead(FacilityBase, APIModel):
     id: UUID
+    user_id: UUID
     is_verified: bool
     created_at: datetime
     updated_at: datetime
@@ -61,6 +64,7 @@ class FacilityCertificationRead(APIModel):
     status: VerificationStatus
     evidence_url: Optional[HttpUrl]
     verified_at: Optional[datetime]
+
 
 class FacilityWithCertifications(FacilityRead):
     certifications: List[FacilityCertificationRead] = Field(default_factory=list)

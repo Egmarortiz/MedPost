@@ -7,3 +7,4 @@ sqlalchemy
 alembic
 PyJWT
 psycopg2-binary
+passlib[bcrypt]

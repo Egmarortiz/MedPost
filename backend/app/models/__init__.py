@@ -1,6 +1,7 @@
 """SQLAlchemy models for the MedPost domain."""
 
 from .base_model import (
+    AuthEventType,
     Base,
     TimestampMixin,
     VerificationStatus,
@@ -11,6 +12,7 @@ from .base_model import (
     FacilityCertificationCode,
     EmploymentType,
     CompensationType,
+    UserRole,
 )
 from .worker import Worker, Experience, CredentialType, WorkerCredential, SafetyCheck
 from .facility import (
@@ -21,8 +23,10 @@ from .facility import (
     FacilityCertification,
 )
 from .jobs import JobPost, JobPostRole, JobApplication
+from .user import User, RefreshToken, AuthAuditLog
 
 __all__ = [
+    "AuthEventType",
     "Base",
     "TimestampMixin",
     "VerificationStatus",
@@ -33,6 +37,7 @@ __all__ = [
     "FacilityCertificationCode",
     "EmploymentType",
     "CompensationType",
+    "UserRole",
     "Worker",
     "Experience",
     "CredentialType",
@@ -46,4 +51,7 @@ __all__ = [
     "JobPost",
     "JobPostRole",
     "JobApplication",
+    "User",
+    "RefreshToken",
+    "AuthAuditLog",
 ]

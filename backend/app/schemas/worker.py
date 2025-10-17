@@ -67,7 +67,7 @@ class WorkerBase(BaseModel):
 
 
 class WorkerCreate(WorkerBase):
-    pass
+    user_id: UUID
 
 
 class WorkerUpdate(BaseModel):
@@ -84,6 +84,7 @@ class WorkerUpdate(BaseModel):
 
 class WorkerRead(WorkerBase, APIModel):
     id: UUID
+    user_id: UUID
     created_at: datetime
     updated_at: datetime
     experiences: List[ExperienceRead] = Field(default_factory=list)

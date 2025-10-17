@@ -83,6 +83,11 @@ class SafetyTier(str, Enum):
     TIER3 = "TIER3"      # Enterprise (drug test, credit, etc.)
 
 
+class UserRole(str, Enum):
+    WORKER = "WORKER"
+    FACILITY = "FACILITY"
+    ADMIN = "ADMIN"
+
 class WorkerTitle(str, Enum):
     RN = "RN"
     LPN = "LPN"
@@ -118,6 +123,13 @@ class CompensationType(str, Enum):
     HOURLY = "HOURLY"
     MONTHLY = "MONTHLY"
     YEARLY = "YEARLY"
+
+
+class AuthEventType(str, Enum):
+    REGISTER = "REGISTER"
+    LOGIN = "LOGIN"
+    LOGOUT = "LOGOUT"
+    REFRESH = "REFRESH"
 
 
 class Endorsement(Base, TimestampMixin):

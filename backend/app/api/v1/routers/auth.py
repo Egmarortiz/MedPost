@@ -1,24 +1,83 @@
-"""Authentication endpoints (placeholder)."""
+"""Authentication endpoints."""
 
 from __future__ import annotations
 
-import datetime as dt
+from app.api.deps import get_auth_service
+from app.schemas import (
+    FacilityRegistrationRequest,
+    LoginRequest,
+    LogoutRequest,
+    Message,
+    RefreshRequest,
+    TokenPair,
+    WorkerRegistrationRequest,
+)
+from app.services import AuthService
 
-from fastapi import APIRouter, Depends
-from fastapi.security import OAuth2PasswordRequestForm
+router = APIRouter(tags=["auth"])
 
-from app.schemas import TokenPayload
+def _client_context(request: Request) -> tuple[str | None, str | None]:
+    client_host = request.client.host if request.client else None
+    user_agent = request.headers.get("user-agent")
+    return client_host, user_agent
 
-router = APIRouter()
+
+@router.post("/worker/register", response_model=TokenPair, status_code=status.HTTP_201_CREATED)
+def register_worker(
+    payload: WorkerRegistrationRequest,
+    request: Request,
+    service: AuthService = Depends(get_auth_service),
+) -> TokenPair:
+    ip_address, user_agent = _client_context(request)
+    return service.register_worker(payload, ip_address=ip_address, user_agent=user_agent)
 
 
-@router.post("/login", response_model=TokenPayload)
-def login(form_data: OAuth2PasswordRequestForm = Depends()) -> TokenPayload:
-    """Return a dummy JWT token.
+@router.post("/worker/login", response_model=TokenPair)
+def login_worker(
+    payload: LoginRequest,
+    request: Request,
+    service: AuthService = Depends(get_auth_service),
+) -> TokenPair:
+    ip_address, user_agent = _client_context(request)
+    return service.login_worker(payload, ip_address=ip_address, user_agent=user_agent)
 
-    This placeholder implementation allows the frontend to start wiring up
-    authentication flows without a full identity provider.
-    """
 
-    expires_at = dt.datetime.utcnow() + dt.timedelta(hours=1)
-    return TokenPayload(access_token=f"fake-token-for-{form_data.username}", expires_at=expires_at)
+@router.post("/facility/register", response_model=TokenPair, status_code=status.HTTP_201_CREATED)
+def register_facility(
+    payload: FacilityRegistrationRequest,
+    request: Request,
+    service: AuthService = Depends(get_auth_service),
+) -> TokenPair:
+    ip_address, user_agent = _client_context(request)
+    return service.register_facility(payload, ip_address=ip_address, user_agent=user_agent)
+
+
+@router.post("/facility/login", response_model=TokenPair)
+def login_facility(
+    payload: LoginRequest,
+    request: Request,
+    service: AuthService = Depends(get_auth_service),
+) -> TokenPair:
+    ip_address, user_agent = _client_context(request)
+    return service.login_facility(payload, ip_address=ip_address, user_agent=user_agent)
+
+
+@router.post("/refresh", response_model=TokenPair)
+def refresh_token(
+    payload: RefreshRequest,
+    request: Request,
+    service: AuthService = Depends(get_auth_service),
+) -> TokenPair:
+    ip_address, user_agent = _client_context(request)
+    return service.refresh_session(payload, ip_address=ip_address, user_agent=user_agent)
+
+
+@router.post("/logout", response_model=Message)
+def logout(
+    payload: LogoutRequest,
+    request: Request,
+    service: AuthService = Depends(get_auth_service),
+) -> Message:
+    ip_address, user_agent = _client_context(request)
+    service.logout(payload, ip_address=ip_address, user_agent=user_agent)
+    return Message(detail="Logged out")

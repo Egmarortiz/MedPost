@@ -36,6 +36,10 @@ class Facility(Base, TimestampMixin):
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
 
+    user_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False
+    )
+
     legal_name: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     industry: Mapped[Industry] = mapped_column(SAEnum(Industry), index=True)
     bio: Mapped[Optional[str]] = mapped_column(Text)
@@ -71,6 +75,7 @@ class Facility(Base, TimestampMixin):
     endorsements: Mapped[List["Endorsement"]] = relationship(
         "Endorsement", back_populates="facility", cascade="all, delete-orphan"
     )
+    user: Mapped["User"] = relationship("User", back_populates="facility_profile")
 
     __table_args__ = (
         CheckConstraint(
