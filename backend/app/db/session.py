@@ -48,3 +48,4 @@ def session_scope() -> Generator[Session, None, None]:
         session.rollback()
         raise
     finally:
+        session.close()
