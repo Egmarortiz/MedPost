@@ -8,3 +8,7 @@ alembic
 PyJWT
 psycopg2-binary
 passlib[bcrypt]
+# Pin bcrypt to a version that exposes the __about__ metadata required by
+# passlib's bcrypt backend. Versions >=4 removed that attribute, causing runtime
+# failures when hashing passwords during registration.
+bcrypt>=3.2,<4
