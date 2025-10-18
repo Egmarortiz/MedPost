@@ -9,13 +9,14 @@ export default function RoleSelect() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Are you hiring or looking for a job in the medical field?</Text>
+      <Text style={styles.title}>Are you hiring or</Text>
+         <Text style={styles.title}>looking for a job?</Text>
 
       <TouchableOpacity
         style={styles.button}
         onPress={() => router.push("facility-business")}
       >
-        <FontAwesome6 name="hospital" size={34} color="black" style={styles.icon} />
+        <FontAwesome6 name="hospital" size={30} color="black" style={styles.icon} />
         <Text style={styles.buttonText}>I'm a Hiring Facility</Text>
       </TouchableOpacity>
 
@@ -23,7 +24,7 @@ export default function RoleSelect() {
         style={styles.button}
         onPress={() => router.push("worker-specialty")}
       >
-        <FontAwesome6 name="hand-holding-medical" size={34} color="black" style={styles.icon} />
+        <FontAwesome6 name="hand-holding-medical" size={30} color="black" style={styles.icon} />
         <Text style={styles.buttonText}>I'm a Job Seeker</Text>
       </TouchableOpacity>
     </View>
@@ -38,24 +39,26 @@ const styles = StyleSheet.create({
     backgroundColor: "#00ced1",
   },
   title: {
+    alignItems: "center",
     fontSize: 28,
     fontWeight: "bold",
-    marginBottom: 40,
+    color: "#fff",
+    marginBottom: 4,
   },
   button: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    paddingVertical: 15,
+    paddingVertical: 20,
     paddingHorizontal: 50,
     borderRadius: 12,
     marginVertical: 10,
-    width: "50%",
+    width: "60%",
     alignItems: "center",
   },
   buttonText: {
     color: "black",
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: "600",
   },
   icon: {
