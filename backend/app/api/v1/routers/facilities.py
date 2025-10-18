@@ -12,7 +12,7 @@ from app.schemas import (
     FacilityUpdate,
     PaginatedResponse,
 )
-from ..deps import get_facilities_service, get_pagination_params
+from app.api.deps import get_facilities_service, get_pagination_params
 from app.schemas.common import PaginationParams
 from app.services.facilities_service import FacilitiesService
 

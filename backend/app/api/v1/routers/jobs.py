@@ -15,7 +15,7 @@ from app.schemas import (
     JobPostCreate,
     JobPostRead,
 )
-from ..deps import get_jobs_service, get_pagination_params
+from app.api.deps import get_jobs_service, get_pagination_params
 from app.schemas.common import PaginationParams
 from app.services.jobs_service import JobsService
 

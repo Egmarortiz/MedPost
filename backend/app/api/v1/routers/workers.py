@@ -19,7 +19,7 @@ from app.schemas import (
     WorkerRead,
     WorkerUpdate,
 )
-from ..deps import (
+from app.api.deps import (
     get_pagination_params,
     get_workers_service,
 )
