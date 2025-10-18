@@ -65,6 +65,9 @@ backend/
 
 - REST endpoints live under `app/api/v1/routers`, business logic sits inside `app/services`, and data access is handled in `app/repositories`. The GraphQL API shares the same services, and Alembic migrations are configured via `migrations/env.py`.
 
+- the full base URL for endpoints during local development becomes http://127.0.0.1:8000/api/v1 (e.g., http://127.0.0.1:8000/api/v1/workers).
+
+- If we override the host/port flags (for example, fastapi dev app/main.py --host 0.0.0.0 --port 9000), the CLI will serve on those values instead, and the base URL updates accordingly.
 
 ## Tech Stack
 
