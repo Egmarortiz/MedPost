@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Generic, Sequence, TypeVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from pydantic.generics import GenericModel
 
 T = TypeVar("T")
@@ -13,6 +13,7 @@ T = TypeVar("T")
 class APIModel(BaseModel):
     class Config:
         orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PaginatedResponse(GenericModel, Generic[T]):
@@ -23,6 +24,7 @@ class PaginatedResponse(GenericModel, Generic[T]):
 
     class Config:
         orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Message(APIModel):
