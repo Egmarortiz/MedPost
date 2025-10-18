@@ -1,4 +1,4 @@
-"""Authentication endpoints."""
+"""Authentication endpoints for worker and facility flows."""
 
 from __future__ import annotations
 
