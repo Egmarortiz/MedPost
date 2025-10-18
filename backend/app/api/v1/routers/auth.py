@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from fastapi import APIRouter, Depends, Request, status
+
 from app.api.deps import get_auth_service
 from app.schemas import (
     FacilityRegistrationRequest,
