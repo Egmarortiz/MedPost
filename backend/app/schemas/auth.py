@@ -25,8 +25,6 @@ class TokenPair(APIModel):
 
 
 class LoginRequest(BaseModel):
-    username: str
-    password: str
     email: EmailStr
     password: SecretStr
 
