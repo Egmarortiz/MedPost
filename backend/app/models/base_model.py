@@ -89,11 +89,11 @@ class UserRole(str, Enum):
     ADMIN = "ADMIN"
 
 class WorkerTitle(str, Enum):
-    RN = "RN"
-    LPN = "LPN"
-    CNA = "CNA"
-    CAREGIVER = "CAREGIVER"
-    SUPPORT = "SUPPORT"
+    RN = "Registered Nurse"
+    LPN = "Licensed Practical Nurse"
+    CNA = "Certified Nursing Assistant"
+    CAREGIVER = "Caregiver"
+    SUPPORT = "Housekeeping/Support Staff"
 
 
 class EducationLevel(str, Enum):
