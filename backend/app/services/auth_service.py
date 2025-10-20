@@ -196,7 +196,8 @@ class AuthService:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
         now = self._now()
-        if stored.expires_at < now:
+        expires_at = self._ensure_utc(stored.expires_at)
+        if expires_at < now:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired")
 
         user = stored.user
@@ -341,3 +342,11 @@ class AuthService:
     @staticmethod
     def _now() -> dt.datetime:
         return dt.datetime.now(dt.timezone.utc)
+
+    @staticmethod
+    def _ensure_utc(value: dt.datetime) -> dt.datetime:
+        """Normalize database datetimes to timezone-aware UTC for safe comparison."""
+
+        if value.tzinfo is None:
+            return value.replace(tzinfo=dt.timezone.utc)
+        return value.astimezone(dt.timezone.utc)
