@@ -97,16 +97,18 @@ class WorkerTitle(str, Enum):
 
 
 class EducationLevel(str, Enum):
-    HIGHSCHOOL = "HIGHSCHOOL"
-    COLLEGE = "COLLEGE"
+    HIGHSCHOOL = "High-School Diploma"
+    COLLEGE_DEGREE = "College Degree"
+    ATTENDING_COLLEGE = "Currently Attending College"
+
 
 
 class Industry(str, Enum):
-    HOSPITAL = "HOSPITAL"
-    HOME_HEALTH = "HOME_HEALTH"
-    SENIOR_CARE = "SENIOR_CARE"
-    REHAB_CENTER = "REHAB_CENTER"
-    OTHER = "OTHER"
+    HOSPITAL = "Hospital"
+    HOME_HEALTH = "Home Health"
+    SENIOR_CARE = "Senior Care"
+    REHAB_CENTER = "Rehab Center"
+    OTHER = "Other"
 
 
 class FacilityCertificationCode(str, Enum):
