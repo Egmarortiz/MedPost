@@ -8,14 +8,15 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from app.core import DEFAULT_STATE_PROVINCE, PuertoRicoMunicipality
 from .common import APIModel
 from app.models import CompensationType, EmploymentType, WorkerTitle
 
 class JobPostBase(BaseModel):
     facility_id: UUID
     facility_legal_name_snapshot: Optional[str] = None
-    city: Optional[str] = None
-    state_province: Optional[str] = None
+    city: Optional[PuertoRicoMunicipality] = None
+    state_province: Optional[str] = DEFAULT_STATE_PROVINCE
     postal_code: Optional[str] = None
     position_title: str
     employment_type: EmploymentType

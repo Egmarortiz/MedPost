@@ -6,6 +6,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, HttpUrl
 
+from app.core import DEFAULT_COUNTRY, DEFAULT_STATE_PROVINCE, PuertoRicoMunicipality
 from .common import APIModel
 from app.models import FacilityCertificationCode, Industry, VerificationStatus
 
@@ -21,10 +22,10 @@ class FacilityBase(BaseModel):
     founded_year: Optional[int] = None
     hq_address_line1: Optional[str] = None
     hq_address_line2: Optional[str] = None
-    hq_city: Optional[str] = None
-    hq_state_province: Optional[str] = None
+    hq_city: Optional[PuertoRicoMunicipality] = None
+    hq_state_province: Optional[str] = DEFAULT_STATE_PROVINCE
     hq_postal_code: Optional[str] = None
-    hq_country: Optional[str] = None
+    hq_country: Optional[str] = DEFAULT_COUNTRY
 
 
 class FacilityCreate(FacilityBase):
@@ -50,7 +51,7 @@ class FacilityUpdate(BaseModel):
     founded_year: Optional[int] = None
     hq_address_line1: Optional[str] = None
     hq_address_line2: Optional[str] = None
-    hq_city: Optional[str] = None
+    hq_city: Optional[PuertoRicoMunicipality] = None
     hq_state_province: Optional[str] = None
     hq_postal_code: Optional[str] = None
     hq_country: Optional[str] = None

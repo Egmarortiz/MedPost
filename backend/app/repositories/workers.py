@@ -5,10 +5,10 @@ from __future__ import annotations
 from typing import List, Optional, Tuple
 from uuid import UUID
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Worker, Experience, WorkerCredential
+from app.models import Endorsement, Experience, Worker, WorkerCredential
 from app.schemas import PaginationParams, WorkerFilter
 from .base import SQLAlchemyRepository
 
@@ -25,13 +25,24 @@ class WorkerRepository(SQLAlchemyRepository[Worker]):
             stmt = stmt.where(Worker.title == filters.title)
         if filters.city:
             stmt = stmt.where(Worker.city == filters.city)
-        if filters.state_province:
-            stmt = stmt.where(Worker.state_province == filters.state_province)
+        if filters.education_level:
+            stmt = stmt.where(Worker.education_level == filters.education_level)
+        if filters.has_endorsements is not None:
+            endorsement_exists = (
+                select(Endorsement.id)
+                .where(Endorsement.worker_id == Worker.id)
+                .exists()
+            )
+            if filters.has_endorsements:
+                stmt = stmt.where(endorsement_exists)
+            else:
+                stmt = stmt.where(~endorsement_exists)
         total_stmt = select(func.count()).select_from(stmt.subquery())
         total = self.session.execute(total_stmt).scalar_one()
+        query = stmt
         if params:
-            stmt = stmt.offset(params.offset).limit(params.limit)
-        workers = self.session.execute(stmt).scalars().all()
+            query = query.offset(params.offset).limit(params.limit)
+        workers = self.session.execute(query).scalars().all()
         return workers, total
 
     def get_worker(self, worker_id: UUID) -> Optional[Worker]:

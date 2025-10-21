@@ -25,7 +25,7 @@ from .jobs import (
     JobApplicationCreate,
     JobApplicationRead,
 )
-from .filters import WorkerFilter, JobFilter
+from .filters import FacilityFilter, JobFilter, WorkerFilter
 from .auth import (
     TokenPair,
     LoginRequest,
@@ -60,6 +60,7 @@ __all__ = [
     "JobApplicationCreate",
     "JobApplicationRead",
     "WorkerFilter",
+    "FacilityFilter",
     "JobFilter",
     "TokenPair",
     "LoginRequest",

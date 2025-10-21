@@ -5,8 +5,9 @@ from __future__ import annotations
 from typing import List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from app.core import PuertoRicoMunicipality
 from app.models import CompensationType, EmploymentType, WorkerTitle
 from app.schemas import (
     JobApplicationCreate,
@@ -24,22 +25,18 @@ router = APIRouter()
 
 @router.get("/", response_model=List[JobPostRead])
 def list_jobs(
-    title: Optional[str] = None,
-    worker_title: Optional[WorkerTitle] = None,
+    worker_titles: Optional[List[WorkerTitle]] = Query(None),
     employment_type: Optional[EmploymentType] = None,
     compensation_type: Optional[CompensationType] = None,
-    city: Optional[str] = None,
-    state: Optional[str] = None,
+    city: Optional[PuertoRicoMunicipality] = None,
     pagination: PaginationParams = Depends(get_pagination_params),
     service: JobsService = Depends(get_jobs_service),
 ) -> List[JobPostRead]:
     filters = JobFilter(
-        title=title,
-        worker_title=worker_title,
+        worker_titles=worker_titles,
         employment_type=employment_type,
         compensation_type=compensation_type,
         city=city,
-        state_province=state,
     )
     jobs = service.list_jobs(filters, pagination)
     return [JobPostRead.from_orm(job) for job in jobs]

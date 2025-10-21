@@ -8,6 +8,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, HttpUrl
 
+from app.core import DEFAULT_STATE_PROVINCE, PuertoRicoMunicipality
 from .common import APIModel
 from app.models import EducationLevel, WorkerTitle
 
@@ -60,8 +61,8 @@ class WorkerBase(BaseModel):
     bio: Optional[str] = None
     profile_image_url: Optional[HttpUrl] = None
     resume_url: Optional[HttpUrl] = None
-    city: Optional[str] = None
-    state_province: Optional[str] = None
+    city: Optional[PuertoRicoMunicipality] = None
+    state_province: Optional[str] = DEFAULT_STATE_PROVINCE
     postal_code: Optional[str] = None
     education_level: EducationLevel = EducationLevel.HIGHSCHOOL
 
@@ -76,7 +77,7 @@ class WorkerUpdate(BaseModel):
     bio: Optional[str] = None
     profile_image_url: Optional[HttpUrl] = None
     resume_url: Optional[HttpUrl] = None
-    city: Optional[str] = None
+    city: Optional[PuertoRicoMunicipality] = None
     state_province: Optional[str] = None
     postal_code: Optional[str] = None
     education_level: Optional[EducationLevel] = None

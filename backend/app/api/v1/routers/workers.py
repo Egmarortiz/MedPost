@@ -7,7 +7,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
-from app.models import WorkerTitle
+from app.core import PuertoRicoMunicipality
+from app.models import EducationLevel, WorkerTitle
 from app.schemas import (
     ExperienceCreate,
     ExperienceRead,
@@ -32,12 +33,18 @@ router = APIRouter()
 @router.get("/", response_model=PaginatedResponse[WorkerRead])
 def list_workers(
     title: Optional[WorkerTitle] = None,
-    city: Optional[str] = None,
-    state: Optional[str] = None,
+    city: Optional[PuertoRicoMunicipality] = None,
+    education_level: Optional[EducationLevel] = None,
+    has_endorsements: Optional[bool] = None,
     pagination: PaginationParams = Depends(get_pagination_params),
     service: WorkersService = Depends(get_workers_service),
 ) -> PaginatedResponse[WorkerRead]:
-    filters = WorkerFilter(title=title, city=city, state_province=state)
+    filters = WorkerFilter(
+        title=title,
+        city=city,
+        education_level=education_level,
+        has_endorsements=has_endorsements,
+    )
     workers, total = service.list_workers(filters, pagination)
     items = [WorkerRead.from_orm(worker) for worker in workers]
     return PaginatedResponse[WorkerRead](

@@ -20,6 +20,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import relationship
 
+from app.core import DEFAULT_STATE_PROVINCE, PuertoRicoMunicipality
 from .base_model import (
     Base,
     TimestampMixin,
@@ -44,8 +45,15 @@ class JobPost(Base, TimestampMixin):
     # optional denormalized snapshot for fast list rendering
     facility_legal_name_snapshot: Mapped[Optional[str]] = mapped_column(String(255))
 
-    city: Mapped[Optional[str]] = mapped_column(String(120), index=True)
-    state_province: Mapped[Optional[str]] = mapped_column(String(120), index=True)
+    city: Mapped[Optional[PuertoRicoMunicipality]] = mapped_column(
+        SAEnum(PuertoRicoMunicipality), index=True
+    )
+    state_province: Mapped[Optional[str]] = mapped_column(
+        String(120),
+        index=True,
+        default=DEFAULT_STATE_PROVINCE,
+        server_default=DEFAULT_STATE_PROVINCE,
+    )
     postal_code: Mapped[Optional[str]] = mapped_column(String(20), index=True)
 
     # role/time

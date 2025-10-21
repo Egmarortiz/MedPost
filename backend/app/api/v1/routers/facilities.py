@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
+from app.models import Industry
 from app.schemas import (
     FacilityCreate,
+    FacilityFilter,
     FacilityRead,
     FacilityUpdate,
     PaginatedResponse,
@@ -21,10 +24,12 @@ router = APIRouter()
 
 @router.get("/", response_model=PaginatedResponse[FacilityRead])
 def list_facilities(
+    industry: Optional[Industry] = None,
     pagination: PaginationParams = Depends(get_pagination_params),
     service: FacilitiesService = Depends(get_facilities_service),
 ) -> PaginatedResponse[FacilityRead]:
-    facilities, total = service.list_facilities(pagination)
+    filters = FacilityFilter(industry=industry)
+    facilities, total = service.list_facilities(filters, pagination)
     items = [FacilityRead.from_orm(facility) for facility in facilities]
     return PaginatedResponse[FacilityRead](
         items=items,

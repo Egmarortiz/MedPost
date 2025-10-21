@@ -19,18 +19,18 @@ class JobRepository(SQLAlchemyRepository[JobPost]):
 
     def list_filtered(self, filters: JobFilter, params: Optional[PaginationParams] = None) -> List[JobPost]:
         stmt = select(JobPost)
-        if filters.title:
-            stmt = stmt.where(JobPost.position_title.ilike(f"%{filters.title}%"))
-        if filters.worker_title:
-            stmt = stmt.join(JobPost.roles).where(JobPostRole.role == filters.worker_title)
+        if filters.worker_titles:
+            stmt = (
+                stmt.join(JobPost.roles)
+                .where(JobPostRole.role.in_(filters.worker_titles))
+                .distinct()
+            )
         if filters.employment_type:
             stmt = stmt.where(JobPost.employment_type == filters.employment_type)
         if filters.compensation_type:
             stmt = stmt.where(JobPost.compensation_type == filters.compensation_type)
         if filters.city:
             stmt = stmt.where(JobPost.city == filters.city)
-        if filters.state_province:
-            stmt = stmt.where(JobPost.state_province == filters.state_province)
         if params:
             stmt = stmt.offset(params.offset).limit(params.limit)
         return self.session.execute(stmt).scalars().all()

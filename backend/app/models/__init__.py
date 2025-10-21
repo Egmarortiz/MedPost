@@ -13,6 +13,7 @@ from .base_model import (
     EmploymentType,
     CompensationType,
     UserRole,
+    Endorsement,
 )
 from .worker import Worker, Experience, CredentialType, WorkerCredential, SafetyCheck
 from .facility import (
@@ -38,6 +39,7 @@ __all__ = [
     "EmploymentType",
     "CompensationType",
     "UserRole",
+    "Endorsement",
     "Worker",
     "Experience",
     "CredentialType",

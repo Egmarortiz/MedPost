@@ -12,6 +12,7 @@ from app.repositories import FacilityRepository
 from app.schemas import (
     FacilityCertificationRead,
     FacilityCreate,
+    FacilityFilter,
     FacilityUpdate,
     FacilityWithCertifications,
     PaginationParams,
@@ -23,8 +24,10 @@ class FacilitiesService:
         self.session = session
         self.repo = FacilityRepository(session)
 
-    def list_facilities(self, pagination: PaginationParams) -> Tuple[List[Facility], int]:
-        return self.repo.list_facilities(pagination)
+    def list_facilities(
+        self, filters: FacilityFilter, pagination: PaginationParams
+    ) -> Tuple[List[Facility], int]:
+        return self.repo.list_facilities(filters, pagination)
 
     def get_facility(self, facility_id: UUID) -> Facility | None:
         return self.repo.get_facility(facility_id)

@@ -9,7 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import Facility, FacilityCertification
-from app.schemas import PaginationParams
+from app.schemas import FacilityFilter, PaginationParams
 from .base import SQLAlchemyRepository
 
 
@@ -27,12 +27,15 @@ class FacilityRepository(SQLAlchemyRepository[Facility]):
         return self.session.execute(stmt).scalars().all()
 
     def list_facilities(
-        self, params: Optional[PaginationParams] = None
+        self, filters: FacilityFilter, params: Optional[PaginationParams] = None
     ) -> Tuple[List[Facility], int]:
         stmt = select(Facility)
+        if filters.industry:
+            stmt = stmt.where(Facility.industry == filters.industry)
         total_stmt = select(func.count()).select_from(stmt.subquery())
         total = self.session.execute(total_stmt).scalar_one()
+        query = stmt
         if params:
-            stmt = stmt.offset(params.offset).limit(params.limit)
-        facilities = self.session.execute(stmt).scalars().all()
+            query = query.offset(params.offset).limit(params.limit)
+        facilities = self.session.execute(query).scalars().all()
         return facilities, total
