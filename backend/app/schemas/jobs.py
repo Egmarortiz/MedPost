@@ -55,8 +55,11 @@ class JobApplicationCreate(BaseModel):
     job_post_id: Optional[UUID] = None
     worker_id: Optional[UUID] = None
     answer_text: Optional[str] = None
-    phone_e164: Optional[str] = None
-    email: Optional[str] = None
+    contact_phone_e164_snapshot: Optional[str] = Field(default=None, alias="phone_e164")
+    contact_email_snapshot: Optional[str] = Field(default=None, alias="email")
+
+    class Config:
+        allow_population_by_field_name = True
 
 class JobApplicationRead(JobApplicationCreate, APIModel):
     id: UUID
