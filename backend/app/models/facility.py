@@ -75,6 +75,14 @@ class Facility(Base, TimestampMixin):
         default=DEFAULT_COUNTRY,
         server_default=DEFAULT_COUNTRY,
     )
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    job_posts: Mapped[List["JobPost"]] = relationship(
+        "JobPost", back_populates="facility", cascade="all, delete-orphan"
+    )
+    locations: Mapped[List["FacilityAddress"]] = relationship(
+        "FacilityAddress", back_populates="facility", cascade="all, delete-orphan"
+    )
     specialties: Mapped[List["FacilitySpecialty"]] = relationship(
         "FacilitySpecialty", back_populates="facility", cascade="all, delete-orphan"
     )
