@@ -75,7 +75,6 @@ class Facility(Base, TimestampMixin):
         default=DEFAULT_COUNTRY,
         server_default=DEFAULT_COUNTRY,
     )
-    )
     specialties: Mapped[List["FacilitySpecialty"]] = relationship(
         "FacilitySpecialty", back_populates="facility", cascade="all, delete-orphan"
     )
