@@ -188,14 +188,12 @@ def _municipality_enum(create_type: bool = False) -> sa.Enum:
 
 def _normalize_city_values(table_name: str, column_name: str) -> None:
     for label, enum_name in MUNICIPALITY_LABEL_TO_ENUM.items():
-        op.execute(
-                sa.text(
-                    f"UPDATE {table_name} "
-                    f"SET {column_name} = :enum_name "
-                    f"WHERE lower({column_name}) = :label_lower"
-                    ),
-                {"enum_name": enum_name, "label_lower": label.lower()},
-                )
+        statement = sa.text(
+                f"UPDATE {table_name} "
+                f"SET {column_name} = :enum_name "
+                f"WHERE lower({column_name}) = :label_lower"
+                ).bindparams(enum_name=enum_name, label_lower=label.lower())
+        op.execute(statement)
 
 
 def upgrade() -> None:
