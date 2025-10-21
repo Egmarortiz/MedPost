@@ -1,8 +1,8 @@
-"""Apply PR municipality enum changes
+"""Use PR municipality enum for location fields
 
-Revision ID: 9d7cdecd45ea
+Revision ID: 0a7788c58fc9
 Revises: 6b8fa98a857f
-Create Date: 2025-10-21 01:21:27.149544
+Create Date: 2025-10-21 03:31:35.543521
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '9d7cdecd45ea'
+revision: str = '0a7788c58fc9'
 down_revision: Union[str, None] = '6b8fa98a857f'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -32,7 +32,6 @@ def upgrade() -> None:
                existing_type=sa.VARCHAR(length=120),
                server_default='US',
                existing_nullable=True)
-    op.drop_column('facilities', 'is_verified')
     op.alter_column('facility_addresses', 'city',
                existing_type=sa.VARCHAR(length=120),
                type_=sa.Enum('ADJUNTAS', 'AGUADA', 'AGUADILLA', 'AGUAS_BUENAS', 'AIBONITO', 'ANASCO', 'ARECIBO', 'ARROYO', 'BARCELONETA', 'BARRANQUITAS', 'BAYAMON', 'CABO_ROJO', 'CAGUAS', 'CAMUY', 'CANOVANAS', 'CAROLINA', 'CATANO', 'CAYEY', 'CEIBA', 'CIALES', 'CIDRA', 'COAMO', 'COMERIO', 'COROZAL', 'CULEBRA', 'DORADO', 'FAJARDO', 'FLORIDA', 'GUANICA', 'GUAYAMA', 'GUAYANILLA', 'GUAYNABO', 'GURABO', 'HATILLO', 'HORMIGUEROS', 'HUMACAO', 'ISABELA', 'JAYUYA', 'JUANA_DIAZ', 'JUNCOS', 'LAJAS', 'LARES', 'LAS_MARIAS', 'LAS_PIEDRAS', 'LOIZA', 'LUQUILLO', 'MANATI', 'MARICAO', 'MAUNABO', 'MAYAGUEZ', 'MOCA', 'MOROVIS', 'NAGUABO', 'NARANJITO', 'OROCOVIS', 'PATILLAS', 'PENUELAS', 'PONCE', 'QUEBRADILLAS', 'RINCON', 'RIO_GRANDE', 'SABANA_GRANDE', 'SALINAS', 'SAN_GERMAN', 'SAN_JUAN', 'SAN_LORENZO', 'SAN_SEBASTIAN', 'SANTA_ISABEL', 'TOA_ALTA', 'TOA_BAJA', 'TRUJILLO_ALTO', 'UTUADO', 'VEGA_ALTA', 'VEGA_BAJA', 'VIEQUES', 'VILLALBA', 'YABUCOA', 'YAUCO', name='puertoricomunicipality'),
@@ -94,7 +93,6 @@ def downgrade() -> None:
                existing_type=sa.Enum('ADJUNTAS', 'AGUADA', 'AGUADILLA', 'AGUAS_BUENAS', 'AIBONITO', 'ANASCO', 'ARECIBO', 'ARROYO', 'BARCELONETA', 'BARRANQUITAS', 'BAYAMON', 'CABO_ROJO', 'CAGUAS', 'CAMUY', 'CANOVANAS', 'CAROLINA', 'CATANO', 'CAYEY', 'CEIBA', 'CIALES', 'CIDRA', 'COAMO', 'COMERIO', 'COROZAL', 'CULEBRA', 'DORADO', 'FAJARDO', 'FLORIDA', 'GUANICA', 'GUAYAMA', 'GUAYANILLA', 'GUAYNABO', 'GURABO', 'HATILLO', 'HORMIGUEROS', 'HUMACAO', 'ISABELA', 'JAYUYA', 'JUANA_DIAZ', 'JUNCOS', 'LAJAS', 'LARES', 'LAS_MARIAS', 'LAS_PIEDRAS', 'LOIZA', 'LUQUILLO', 'MANATI', 'MARICAO', 'MAUNABO', 'MAYAGUEZ', 'MOCA', 'MOROVIS', 'NAGUABO', 'NARANJITO', 'OROCOVIS', 'PATILLAS', 'PENUELAS', 'PONCE', 'QUEBRADILLAS', 'RINCON', 'RIO_GRANDE', 'SABANA_GRANDE', 'SALINAS', 'SAN_GERMAN', 'SAN_JUAN', 'SAN_LORENZO', 'SAN_SEBASTIAN', 'SANTA_ISABEL', 'TOA_ALTA', 'TOA_BAJA', 'TRUJILLO_ALTO', 'UTUADO', 'VEGA_ALTA', 'VEGA_BAJA', 'VIEQUES', 'VILLALBA', 'YABUCOA', 'YAUCO', name='puertoricomunicipality'),
                type_=sa.VARCHAR(length=120),
                existing_nullable=True)
-    op.add_column('facilities', sa.Column('is_verified', sa.BOOLEAN(), autoincrement=False, nullable=False))
     op.alter_column('facilities', 'hq_country',
                existing_type=sa.VARCHAR(length=120),
                server_default=None,
