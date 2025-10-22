@@ -10,6 +10,7 @@ from app.repositories import WorkerRepository
 from app.schemas import (
     ExperienceCreate,
     ExperienceRead,
+    ExperienceUpdate,
     WorkerCreate,
     WorkerCredentialCreate,
     WorkerCredentialRead,
@@ -81,6 +82,38 @@ class WorkersService:
     def list_experiences(self, worker_id: UUID) -> List[ExperienceRead]:
         experiences = self.repo.list_experiences(worker_id)
         return [ExperienceRead.from_orm(exp) for exp in experiences]
+
+    def get_experience(self, worker_id: UUID, experience_id: UUID) -> ExperienceRead | None:
+        experience = self.repo.get_experience(worker_id, experience_id)
+        if not experience:
+            return None
+        return ExperienceRead.from_orm(experience)
+
+    def update_experience(
+        self, worker_id: UUID, experience_id: UUID, payload: ExperienceUpdate
+    ) -> ExperienceRead | None:
+        experience = self.repo.get_experience(worker_id, experience_id)
+        if not experience:
+            return None
+
+        data = (
+            payload.model_dump(mode="json", exclude_unset=True)
+            if hasattr(payload, "model_dump")
+            else payload.dict(exclude_unset=True)
+        )
+        for key, value in data.items():
+            setattr(experience, key, value)
+        self.session.commit()
+        self.session.refresh(experience)
+        return ExperienceRead.from_orm(experience)
+
+    def delete_experience(self, worker_id: UUID, experience_id: UUID) -> bool:
+        experience = self.repo.get_experience(worker_id, experience_id)
+        if not experience:
+            return False
+        self.repo.delete_experience(experience)
+        self.session.commit()
+        return True
 
     def add_credential(self, worker_id: UUID, payload: WorkerCredentialCreate) -> WorkerCredentialRead:
         data = (

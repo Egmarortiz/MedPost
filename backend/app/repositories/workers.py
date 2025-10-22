@@ -62,6 +62,16 @@ class WorkerRepository(SQLAlchemyRepository[Worker]):
         stmt = select(Experience).where(Experience.worker_id == worker_id)
         return self.session.execute(stmt).scalars().all()
 
+    def get_experience(self, worker_id: UUID, experience_id: UUID) -> Optional[Experience]:
+        stmt = select(Experience).where(
+            Experience.worker_id == worker_id,
+            Experience.id == experience_id,
+        )
+        return self.session.execute(stmt).scalars().first()
+
+    def delete_experience(self, experience: Experience) -> None:
+        self.session.delete(experience)
+
     def add_credential(self, worker_id: UUID, payload: dict) -> WorkerCredential:
         obj = WorkerCredential(worker_id=worker_id, **payload)
         self.session.add(obj)

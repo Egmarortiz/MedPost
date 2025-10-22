@@ -12,6 +12,7 @@ from app.models import EducationLevel, WorkerTitle
 from app.schemas import (
     ExperienceCreate,
     ExperienceRead,
+    ExperienceUpdate,
     PaginatedResponse,
     WorkerCreate,
     WorkerCredentialCreate,
@@ -113,6 +114,46 @@ def list_experiences(
     service: WorkersService = Depends(get_workers_service),
 ) -> List[ExperienceRead]:
     return service.list_experiences(worker_id)
+
+
+@router.get("/{worker_id}/experiences/{experience_id}", response_model=ExperienceRead)
+def get_experience(
+    worker_id: UUID,
+    experience_id: UUID,
+    service: WorkersService = Depends(get_workers_service),
+) -> ExperienceRead:
+    experience = service.get_experience(worker_id, experience_id)
+    if not experience:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Experience not found")
+    return experience
+
+
+@router.patch("/{worker_id}/experiences/{experience_id}", response_model=ExperienceRead)
+@router.put("/{worker_id}/experiences/{experience_id}", response_model=ExperienceRead)
+def update_experience(
+    worker_id: UUID,
+    experience_id: UUID,
+    payload: ExperienceUpdate,
+    service: WorkersService = Depends(get_workers_service),
+) -> ExperienceRead:
+    experience = service.update_experience(worker_id, experience_id, payload)
+    if not experience:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Experience not found")
+    return experience
+
+
+@router.delete(
+    "/{worker_id}/experiences/{experience_id}", status_code=status.HTTP_204_NO_CONTENT
+)
+def delete_experience(
+    worker_id: UUID,
+    experience_id: UUID,
+    service: WorkersService = Depends(get_workers_service),
+) -> Response:
+    deleted = service.delete_experience(worker_id, experience_id)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Experience not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/{worker_id}/credentials", response_model=WorkerCredentialRead, status_code=status.HTTP_201_CREATED)
