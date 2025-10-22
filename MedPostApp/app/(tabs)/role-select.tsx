@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { useRouter } from "expo-router";
 
 export default function RoleSelect() {
@@ -10,21 +10,31 @@ export default function RoleSelect() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Are you hiring or</Text>
-         <Text style={styles.title}>looking for a job?</Text>
+      <Text style={styles.title}>looking for a job?</Text>
 
       <TouchableOpacity
         style={styles.button}
-        onPress={() => router.push("facility-business")}
+        onPress={() => router.push("facility-register")}
       >
-        <FontAwesome6 name="hospital" size={30} color="black" style={styles.icon} />
+        <FontAwesome6
+          name="hospital"
+          size={30}
+          color="black"
+          style={styles.icon}
+        />
         <Text style={styles.buttonText}>I'm a Hiring Facility</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         style={styles.button}
-        onPress={() => router.push("worker-specialty")}
+        onPress={() => router.push("worker-register")}
       >
-        <FontAwesome6 name="hand-holding-medical" size={30} color="black" style={styles.icon} />
+        <FontAwesome6
+          name="hand-holding-medical"
+          size={30}
+          color="black"
+          style={styles.icon}
+        />
         <Text style={styles.buttonText}>I'm a Job Seeker</Text>
       </TouchableOpacity>
     </View>
@@ -63,6 +73,5 @@ const styles = StyleSheet.create({
   },
   icon: {
     marginRight: 10,
-  }
+  },
 });
-

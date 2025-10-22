@@ -8,14 +8,12 @@ import {
   StyleSheet,
   Image,
   Alert,
-  ActivityIndicator,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import DropDownPicker from "react-native-dropdown-picker";
 import { Formik } from "formik";
 import * as yup from "yup";
-import axios from "axios";
 
 const workerUpdateValidationSchema = yup.object().shape({
   full_name: yup.string().required("Full name is required"),
@@ -35,34 +33,17 @@ const workerUpdateValidationSchema = yup.object().shape({
 export default function WorkerProfileUpdate() {
   const router = useRouter();
   const [image, setImage] = useState<string | null>(null);
-  const [workerData, setWorkerData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [openTitle, setOpenTitle] = useState(false);
   const [openEducation, setOpenEducation] = useState(false);
 
   useEffect(() => {
-    const fetchWorker = async () => {
-      try {
-        const response = await axios.get("http://127.0.0.1:8000");
-        setWorkerData(response.data);
-        setImage(response.data.profile_image_url);
-      } catch (error) {
-        Alert.alert("Error", "Unable to load worker profile.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchWorker();
+    setImage(existingWorker.profile_image_url);
   }, []);
 
   const pickImage = async () => {
-    const permissionResult =
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert(
-        "Permission Required",
-        "You need to allow access to your photos."
-      );
+      Alert.alert("Permission Required", "You need to allow access to your photos.");
       return;
     }
 
@@ -77,75 +58,26 @@ export default function WorkerProfileUpdate() {
     }
   };
 
-  const handleUpdateSubmit = async (values: any) => {
-    try {
-      const updatedData = { ...values, profile_image_url: image };
-      await axios.put("http://127.0.0.1:8000", updatedData);
-      Alert.alert("Success", "Profile updated successfully!");
-      router.push("/profile");
-    } catch (error) {
-      Alert.alert(
-        "Update Failed",
-        "Something went wrong while updating your profile."
-      );
-    }
+  const handleUpdateSubmit = (values: any) => {
+    const updatedData = {
+      ...values,
+      profile_image_url: image,
+    };
+
+    Alert.alert("Profile Updated", JSON.stringify(updatedData, null, 2));
+    router.push("/profile");
   };
-
-  if (loading) {
-    return (
-      <View
-        style={[
-          styles.container,
-          { justifyContent: "center", alignItems: "center" },
-        ]}
-      >
-        <ActivityIndicator size="large" color="#00ced1" />
-      </View>
-    );
-  }
-
-  if (!workerData) {
-    return (
-      <View
-        style={[
-          styles.container,
-          { justifyContent: "center", alignItems: "center" },
-        ]}
-      >
-        <Text>No profile data found.</Text>
-      </View>
-    );
-  }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.header}>Update Your Profile</Text>
 
       <Formik
-        initialValues={{
-          full_name: workerData.full_name || "",
-          email: workerData.email || "",
-          phone_e164: workerData.phone_e164 || "",
-          title: workerData.title || "",
-          education_level: workerData.education_level || "",
-          city: workerData.city || "",
-          state_province: workerData.state_province || "",
-          postal_code: workerData.postal_code || "",
-          bio: workerData.bio || "",
-        }}
+        initialValues={existingWorker}
         validationSchema={workerUpdateValidationSchema}
         onSubmit={handleUpdateSubmit}
-        enableReinitialize
       >
-        {({
-          handleChange,
-          handleBlur,
-          handleSubmit,
-          setFieldValue,
-          values,
-          errors,
-          touched,
-        }) => (
+        {({ handleChange, handleBlur, handleSubmit, setFieldValue, values, errors, touched }) => (
           <>
             <View style={styles.imageContainer}>
               {image ? (
@@ -166,9 +98,7 @@ export default function WorkerProfileUpdate() {
                 onChangeText={handleChange("full_name")}
                 onBlur={handleBlur("full_name")}
               />
-              {errors.full_name && touched.full_name && (
-                <Text style={styles.errorText}>{errors.full_name}</Text>
-              )}
+              {errors.full_name && touched.full_name && <Text style={styles.errorText}>{errors.full_name}</Text>}
             </View>
 
             <View style={styles.inputContainer}>
@@ -180,9 +110,7 @@ export default function WorkerProfileUpdate() {
                 onChangeText={handleChange("email")}
                 onBlur={handleBlur("email")}
               />
-              {errors.email && touched.email && (
-                <Text style={styles.errorText}>{errors.email}</Text>
-              )}
+              {errors.email && touched.email && <Text style={styles.errorText}>{errors.email}</Text>}
             </View>
 
             <View style={styles.inputContainer}>
@@ -203,21 +131,13 @@ export default function WorkerProfileUpdate() {
                 value={values.title}
                 items={[
                   { label: "Registered Nurse", value: "Registered Nurse" },
-                  {
-                    label: "Licensed Practical Nurse",
-                    value: "Licensed Practical Nurse",
-                  },
-                  {
-                    label: "Certified Nursing Assistant",
-                    value: "Certified Nursing Assistant",
-                  },
+                  { label: "Licensed Practical Nurse", value: "Licensed Practical Nurse" },
+                  { label: "Certified Nursing Assistant", value: "Certified Nursing Assistant" },
                   { label: "Caregiver", value: "Caregiver" },
                   { label: "Support", value: "Support" },
                 ]}
                 setOpen={setOpenTitle}
-                setValue={(callback) =>
-                  setFieldValue("title", callback(values.title))
-                }
+                setValue={(callback) => setFieldValue("title", callback(values.title))}
                 style={styles.dropdown}
                 dropDownContainerStyle={styles.dropdownContainer}
                 placeholder="Select Title"
@@ -239,12 +159,7 @@ export default function WorkerProfileUpdate() {
                   { label: "Doctorate's Degree", value: "Doctorate's Degree" },
                 ]}
                 setOpen={setOpenEducation}
-                setValue={(callback) =>
-                  setFieldValue(
-                    "education_level",
-                    callback(values.education_level)
-                  )
-                }
+                setValue={(callback) => setFieldValue("education_level", callback(values.education_level))}
                 style={styles.dropdown}
                 dropDownContainerStyle={styles.dropdownContainer}
                 placeholder="Select Education Level"
@@ -261,9 +176,7 @@ export default function WorkerProfileUpdate() {
                 onChangeText={handleChange("city")}
                 onBlur={handleBlur("city")}
               />
-              {errors.city && touched.city && (
-                <Text style={styles.errorText}>{errors.city}</Text>
-              )}
+              {errors.city && touched.city && <Text style={styles.errorText}>{errors.city}</Text>}
             </View>
 
             <View style={styles.inputContainer}>
@@ -305,10 +218,7 @@ export default function WorkerProfileUpdate() {
               />
             </View>
 
-            <TouchableOpacity
-              style={styles.submitButton}
-              onPress={handleSubmit}
-            >
+            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
               <Text style={styles.submitText}>Save Changes</Text>
             </TouchableOpacity>
           </>
@@ -384,6 +294,7 @@ const styles = StyleSheet.create({
     borderColor: "#ddd",
     backgroundColor: "#fff",
     borderRadius: 8,
+    zIndex: 1000,
   },
   errorText: {
     color: "red",
