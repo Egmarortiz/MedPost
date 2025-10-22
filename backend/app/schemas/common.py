@@ -11,8 +11,7 @@ T = TypeVar("T")
 
 
 class APIModel(BaseModel):
-    class Config:
-        from_attributes = True
+   model_config = ConfigDict(from_attributes=True)
 
 class PaginatedResponse(GenericModel, Generic[T]):
     items: Sequence[T]
@@ -20,9 +19,7 @@ class PaginatedResponse(GenericModel, Generic[T]):
     limit: int
     offset: int
 
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class Message(APIModel):
     detail: str

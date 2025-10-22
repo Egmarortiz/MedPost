@@ -93,4 +93,4 @@ class JobApplicationUpdate(BaseModel):
     contact_email_snapshot: Optional[str] = Field(default=None, alias="email")
 
     class Config:
-        allow_population_by_field_name = True
+        model_config = ConfigDict(populate_by_name=True)
