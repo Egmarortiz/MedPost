@@ -33,7 +33,12 @@ class WorkersService:
         return self.repo.get_worker(worker_id)
 
     def create_worker(self, payload: WorkerCreate) -> Worker:
-        worker = Worker(**payload.dict(exclude_unset=True))
+        data = (
+            payload.model_dump(mode="json", exclude_unset=True)
+            if hasattr(payload, "model_dump")
+            else payload.dict(exclude_unset=True)
+        )
+        worker = Worker(**data)
         self.repo.add(worker)
         self.session.commit()
         self.session.refresh(worker)
@@ -43,7 +48,12 @@ class WorkersService:
         worker = self.repo.get_worker(worker_id)
         if not worker:
             return None
-        for key, value in payload.dict(exclude_unset=True).items():
+        data = (
+            payload.model_dump(mode="json", exclude_unset=True)
+            if hasattr(payload, "model_dump")
+            else payload.dict(exclude_unset=True)
+        )
+        for key, value in data.items():
             setattr(worker, key, value)
         self.session.commit()
         self.session.refresh(worker)
@@ -58,7 +68,12 @@ class WorkersService:
         return True
 
     def add_experience(self, worker_id: UUID, payload: ExperienceCreate) -> ExperienceRead:
-        experience = self.repo.add_experience(worker_id, payload.dict(exclude_unset=True))
+        data = (
+            payload.model_dump(mode="json", exclude_unset=True)
+            if hasattr(payload, "model_dump")
+            else payload.dict(exclude_unset=True)
+        )
+        experience = self.repo.add_experience(worker_id, data)
         self.session.commit()
         self.session.refresh(experience)
         return ExperienceRead.from_orm(experience)
@@ -68,7 +83,12 @@ class WorkersService:
         return [ExperienceRead.from_orm(exp) for exp in experiences]
 
     def add_credential(self, worker_id: UUID, payload: WorkerCredentialCreate) -> WorkerCredentialRead:
-        credential = self.repo.add_credential(worker_id, payload.dict(exclude_unset=True))
+        data = (
+            payload.model_dump(mode="json", exclude_unset=True)
+            if hasattr(payload, "model_dump")
+            else payload.dict(exclude_unset=True)
+        )
+        credential = self.repo.add_credential(worker_id, data)
         self.session.commit()
         self.session.refresh(credential)
         return WorkerCredentialRead.from_orm(credential)

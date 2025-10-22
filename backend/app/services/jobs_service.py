@@ -37,7 +37,12 @@ class JobsService:
         return self.repo.get_job_for_facility(job_id, facility_id)
 
     def create_job(self, payload: JobPostCreate) -> JobPost:
-        job = JobPost(**payload.dict(exclude_unset=True))
+        data = (
+            payload.model_dump(mode="json", exclude_unset=True)
+            if hasattr(payload, "model_dump")
+            else payload.dict(exclude_unset=True)
+        )
+        job = JobPost(**data)
         self.repo.add(job)
         self.session.commit()
         self.session.refresh(job)
@@ -50,7 +55,11 @@ class JobsService:
         if not job or job.facility_id != facility_id:
             return None
 
-        data = payload.dict(exclude_unset=True)
+        data = (
+            payload.model_dump(mode="json", exclude_unset=True)
+            if hasattr(payload, "model_dump")
+            else payload.dict(exclude_unset=True)
+        )
         data.pop("facility_id", None)
         for key, value in data.items():
             setattr(job, key, value)
@@ -65,7 +74,11 @@ class JobsService:
         if not job or job.facility_id != facility_id:
             return None
 
-        update_data = payload.dict(exclude_unset=True)
+        update_data = (
+            payload.model_dump(mode="json", exclude_unset=True)
+            if hasattr(payload, "model_dump")
+            else payload.dict(exclude_unset=True)
+        )
         update_data.pop("facility_id", None)
         for key, value in update_data.items():
             setattr(job, key, value)
@@ -74,7 +87,12 @@ class JobsService:
         return job
 
     def apply(self, payload: JobApplicationCreate) -> JobApplicationRead:
-        application = self.repo.add_application(payload.dict(exclude_unset=True))
+        data = (
+            payload.model_dump(mode="json", exclude_unset=True)
+            if hasattr(payload, "model_dump")
+            else payload.dict(exclude_unset=True)
+        )
+        application = self.repo.add_application(data)
         self.session.commit()
         self.session.refresh(application)
         return JobApplicationRead.from_orm(application)
@@ -108,7 +126,12 @@ class JobsService:
         if not application:
             return None
 
-        for key, value in payload.dict(exclude_unset=True).items():
+        data = (
+            payload.model_dump(mode="json", exclude_unset=True)
+            if hasattr(payload, "model_dump")
+            else payload.dict(exclude_unset=True)
+        )
+        for key, value in data.items():
             setattr(application, key, value)
         self.session.commit()
         self.session.refresh(application)

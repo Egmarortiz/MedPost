@@ -47,7 +47,11 @@ class EndorsementsService:
         if self.repo.get_for_facility_and_worker(facility_id, payload.worker_id):
             raise EndorsementAlreadyExistsError
 
-        data = payload.dict(exclude_unset=True)
+        data = (
+            payload.model_dump(mode="json", exclude_unset=True)
+            if hasattr(payload, "model_dump")
+            else payload.dict(exclude_unset=True)
+        )
         data["facility_id"] = facility_id
         endorsement = self.repo.add_endorsement(data)
         self.session.commit()
@@ -64,7 +68,12 @@ class EndorsementsService:
         if not endorsement:
             return None
 
-        for key, value in payload.dict(exclude_unset=True).items():
+        data = (
+            payload.model_dump(mode="json", exclude_unset=True)
+            if hasattr(payload, "model_dump")
+            else payload.dict(exclude_unset=True)
+        )
+        for key, value in data.items():
             setattr(endorsement, key, value)
         self.session.commit()
         self.session.refresh(endorsement)
