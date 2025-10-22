@@ -36,6 +36,11 @@ from .auth import (
     RefreshRequest,
     LogoutRequest,
 )
+from .endorsement import (
+    EndorsementCreate,
+    EndorsementRead,
+    EndorsementUpdate,
+)
 
 __all__ = [
     "APIModel",
@@ -72,4 +77,7 @@ __all__ = [
     "FacilityRegistrationRequest",
     "RefreshRequest",
     "LogoutRequest",
+    "EndorsementCreate",
+    "EndorsementRead",
+    "EndorsementUpdate",
 ]
