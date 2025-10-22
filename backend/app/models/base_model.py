@@ -78,9 +78,11 @@ class VerificationStatus(str, Enum):
 
 
 class SafetyTier(str, Enum):
-    TIER1 = "TIER1"      # ID + background check
-    TIER2 = "TIER2"      # Industry-specific (license, etc.)
-    TIER3 = "TIER3"      # Enterprise (drug test, credit, etc.)
+    TIER1 = "ID + background check"
+
+    # Enable post MVP:
+    # TIER2 = "Industry-specific (license, etc.)"
+    # TIER3 = "Enterprise (drug test, credit, etc.)"
 
 
 class UserRole(str, Enum):
