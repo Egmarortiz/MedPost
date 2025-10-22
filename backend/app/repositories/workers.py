@@ -48,6 +48,10 @@ class WorkerRepository(SQLAlchemyRepository[Worker]):
     def get_worker(self, worker_id: UUID) -> Optional[Worker]:
         return self.session.get(Worker, worker_id)
 
+    def get_by_user_id(self, user_id: UUID) -> Optional[Worker]:
+        stmt = select(Worker).where(Worker.user_id == user_id)
+        return self.session.execute(stmt).scalars().first()
+
     def add_experience(self, worker_id: UUID, payload: dict) -> Experience:
         obj = Experience(worker_id=worker_id, **payload)
         self.session.add(obj)

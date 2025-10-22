@@ -20,6 +20,10 @@ class FacilityRepository(SQLAlchemyRepository[Facility]):
     def get_facility(self, facility_id: UUID) -> Optional[Facility]:
         return self.session.get(Facility, facility_id)
 
+    def get_by_user_id(self, user_id: UUID) -> Optional[Facility]:
+        stmt = select(Facility).where(Facility.user_id == user_id)
+        return self.session.execute(stmt).scalars().first()
+
     def list_certifications(self, facility_id: UUID) -> List[FacilityCertification]:
         stmt = select(FacilityCertification).where(
             FacilityCertification.facility_id == facility_id

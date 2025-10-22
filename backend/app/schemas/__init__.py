@@ -21,9 +21,11 @@ from .facility import (
 from .jobs import (
     JobPostCreate,
     JobPostRead,
+    JobPostUpdate,
     JobPostWithRoles,
     JobApplicationCreate,
     JobApplicationRead,
+    JobApplicationUpdate,
 )
 from .filters import FacilityFilter, JobFilter, WorkerFilter
 from .auth import (
@@ -56,9 +58,11 @@ __all__ = [
     "FacilityWithCertifications",
     "JobPostCreate",
     "JobPostRead",
+    "JobPostUpdate",
     "JobPostWithRoles",
     "JobApplicationCreate",
     "JobApplicationRead",
+    "JobApplicationUpdate",
     "WorkerFilter",
     "FacilityFilter",
     "JobFilter",

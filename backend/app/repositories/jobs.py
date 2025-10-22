@@ -38,6 +38,13 @@ class JobRepository(SQLAlchemyRepository[JobPost]):
     def get_job(self, job_id: UUID) -> Optional[JobPost]:
         return self.session.get(JobPost, job_id)
 
+    def get_job_for_facility(self, job_id: UUID, facility_id: UUID) -> Optional[JobPost]:
+        stmt = select(JobPost).where(
+            JobPost.id == job_id,
+            JobPost.facility_id == facility_id,
+        )
+        return self.session.execute(stmt).scalars().first()
+
     def add_application(self, payload: dict) -> JobApplication:
         obj = JobApplication(**payload)
         self.session.add(obj)
@@ -46,4 +53,37 @@ class JobRepository(SQLAlchemyRepository[JobPost]):
 
     def list_applications(self, job_post_id: UUID) -> List[JobApplication]:
         stmt = select(JobApplication).where(JobApplication.job_post_id == job_post_id)
+        return self.session.execute(stmt).scalars().all()
+
+    def list_applications_for_facility(
+        self, facility_id: UUID, job_post_id: Optional[UUID] = None
+    ) -> List[JobApplication]:
+        stmt = (
+            select(JobApplication)
+            .join(JobPost)
+            .where(JobPost.facility_id == facility_id)
+        )
+        if job_post_id:
+            stmt = stmt.where(JobApplication.job_post_id == job_post_id)
+        stmt = stmt.order_by(JobApplication.created_at.desc())
+        return self.session.execute(stmt).scalars().all()
+
+    def get_application(self, application_id: UUID) -> Optional[JobApplication]:
+        return self.session.get(JobApplication, application_id)
+
+    def get_application_for_worker(
+        self, application_id: UUID, worker_id: UUID
+    ) -> Optional[JobApplication]:
+        stmt = select(JobApplication).where(
+            JobApplication.id == application_id,
+            JobApplication.worker_id == worker_id,
+        )
+        return self.session.execute(stmt).scalars().first()
+
+    def list_applications_for_worker(self, worker_id: UUID) -> List[JobApplication]:
+        stmt = (
+            select(JobApplication)
+            .where(JobApplication.worker_id == worker_id)
+            .order_by(JobApplication.created_at.desc())
+        )
         return self.session.execute(stmt).scalars().all()
