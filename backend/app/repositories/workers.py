@@ -8,7 +8,14 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Endorsement, Experience, Worker, WorkerCredential
+from app.models import (
+    Endorsement,
+    Experience,
+    SafetyCheck,
+    SafetyTier,
+    Worker,
+    WorkerCredential,
+)
 from app.schemas import PaginationParams, WorkerFilter
 from .base import SQLAlchemyRepository
 
@@ -86,5 +93,24 @@ class WorkerRepository(SQLAlchemyRepository[Worker]):
         stmt = select(WorkerCredential).where(
             WorkerCredential.worker_id == worker_id,
             WorkerCredential.id == credential_id,
+        )
+        return self.session.execute(stmt).scalars().first()
+
+    def add_safety_check(self, worker_id: UUID, payload: dict) -> SafetyCheck:
+        obj = SafetyCheck(worker_id=worker_id, **payload)
+        self.session.add(obj)
+        self.session.flush()
+        return obj
+
+    def list_safety_checks(self, worker_id: UUID) -> List[SafetyCheck]:
+        stmt = select(SafetyCheck).where(SafetyCheck.worker_id == worker_id)
+        return self.session.execute(stmt).scalars().all()
+
+    def get_safety_check_by_tier(
+        self, worker_id: UUID, tier: SafetyTier
+    ) -> Optional[SafetyCheck]:
+        stmt = select(SafetyCheck).where(
+            SafetyCheck.worker_id == worker_id,
+            SafetyCheck.tier == tier,
         )
         return self.session.execute(stmt).scalars().first()

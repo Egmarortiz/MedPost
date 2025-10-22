@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field, HttpUrl
 
 from app.core import DEFAULT_STATE_PROVINCE, PuertoRicoMunicipality
 from .common import APIModel
-from app.models import EducationLevel, WorkerTitle
+from app.models import EducationLevel, SafetyTier, VerificationStatus, WorkerTitle
 
 class ExperienceBase(BaseModel):
     company_name: str
@@ -53,6 +53,26 @@ class WorkerCredentialRead(WorkerCredentialBase, APIModel):
     worker_id: UUID
     verified: bool
     verified_at: Optional[datetime] = None
+
+class SafetyCheckBase(BaseModel):
+    tier: SafetyTier
+    evidence_url: Optional[HttpUrl] = None
+
+
+class SafetyCheckCreate(SafetyCheckBase):
+    pass
+
+
+class SafetyCheckRead(SafetyCheckBase, APIModel):
+    id: UUID
+    worker_id: UUID
+    status: VerificationStatus
+    completed_at: Optional[datetime] = None
+
+
+class SafetyCheckSummary(APIModel):
+    tier: SafetyTier
+    status: VerificationStatus
 
 
 class WorkerBase(BaseModel):

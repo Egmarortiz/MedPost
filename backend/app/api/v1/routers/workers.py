@@ -2,18 +2,22 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Annotated, List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from app.core import PuertoRicoMunicipality
-from app.models import EducationLevel, WorkerTitle
+from app.core.security import TokenPayload
+from app.models import EducationLevel, UserRole, Worker, WorkerTitle
 from app.schemas import (
     ExperienceCreate,
     ExperienceRead,
     ExperienceUpdate,
     PaginatedResponse,
+    SafetyCheckCreate,
+    SafetyCheckRead,
+    SafetyCheckSummary,
     WorkerCreate,
     WorkerCredentialCreate,
     WorkerCredentialRead,
@@ -24,11 +28,43 @@ from app.schemas import (
 from app.api.deps import (
     get_pagination_params,
     get_workers_service,
+    require_role,
 )
 from app.schemas.common import PaginationParams
 from app.services.workers_service import WorkersService
 
 router = APIRouter()
+
+
+WorkerUser = Annotated[TokenPayload, Depends(require_role(UserRole.WORKER.value))]
+FacilityUser = Annotated[TokenPayload, Depends(require_role(UserRole.FACILITY.value))]
+
+
+def _get_user_id(payload: TokenPayload) -> UUID:
+    sub = payload.get("sub")
+    if not sub:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication token",
+        )
+    try:
+        return UUID(str(sub))
+    except ValueError as exc:  # pragma: no cover - defensive
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid authentication token",
+        ) from exc
+
+
+def _get_worker(service: WorkersService, payload: TokenPayload) -> Worker:
+    user_id = _get_user_id(payload)
+    worker = service.get_worker_for_user(user_id)
+    if not worker:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Worker profile not found",
+        )
+    return worker
 
 
 @router.get("/", response_model=PaginatedResponse[WorkerRead])
@@ -185,3 +221,47 @@ def delete_credential(
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Credential not found")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+@router.post(
+    "/{worker_id}/safety",
+    response_model=SafetyCheckRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def submit_safety_check(
+    worker_id: UUID,
+    payload: SafetyCheckCreate,
+    current_user: WorkerUser,
+    service: WorkersService = Depends(get_workers_service),
+) -> SafetyCheckRead:
+    worker = _get_worker(service, current_user)
+    if worker.id != worker_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot submit safety information for another worker",
+        )
+    return service.submit_safety_check(worker_id, payload)
+
+
+@router.get(
+    "/{worker_id}/safety",
+    response_model=List[SafetyCheckRead],
+)
+def list_safety_checks(
+    worker_id: UUID,
+    current_user: WorkerUser,
+    service: WorkersService = Depends(get_workers_service),
+) -> List[SafetyCheckRead]:
+    _get_worker(service, current_user)
+    return service.list_safety_checks(worker_id)
+
+
+@router.get(
+    "/{worker_id}/safety/summary",
+    response_model=List[SafetyCheckSummary],
+)
+def list_safety_summary(
+    worker_id: UUID,
+    current_user: FacilityUser,
+    service: WorkersService = Depends(get_workers_service),
+) -> List[SafetyCheckSummary]:
+    return service.list_safety_check_summaries(worker_id)

@@ -5,7 +5,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.models import Worker
+from app.models import VerificationStatus, Worker
 from app.repositories import WorkerRepository
 from app.schemas import (
     ExperienceCreate,
@@ -14,6 +14,9 @@ from app.schemas import (
     WorkerCreate,
     WorkerCredentialCreate,
     WorkerCredentialRead,
+    SafetyCheckCreate,
+    SafetyCheckRead,
+    SafetyCheckSummary,
     WorkerFilter,
     WorkerUpdate,
     PaginationParams,
@@ -137,3 +140,41 @@ class WorkersService:
         self.repo.delete(credential)
         self.session.commit()
         return True
+
+    def submit_safety_check(
+        self, worker_id: UUID, payload: SafetyCheckCreate
+    ) -> SafetyCheckRead:
+        data = (
+            payload.model_dump(exclude_unset=True)
+            if hasattr(payload, "model_dump")
+            else payload.dict(exclude_unset=True)
+        )
+        if "evidence_url" in data and data["evidence_url"] is not None:
+            data["evidence_url"] = str(data["evidence_url"])
+        data["status"] = VerificationStatus.PENDING
+        existing = self.repo.get_safety_check_by_tier(worker_id, data["tier"])
+        if existing:
+            for key, value in data.items():
+                setattr(existing, key, value)
+            self.session.commit()
+            self.session.refresh(existing)
+            return SafetyCheckRead.from_orm(existing)
+
+        safety_check = self.repo.add_safety_check(worker_id, data)
+        self.session.commit()
+        self.session.refresh(safety_check)
+        return SafetyCheckRead.from_orm(safety_check)
+
+    def list_safety_checks(self, worker_id: UUID) -> List[SafetyCheckRead]:
+        checks = self.repo.list_safety_checks(worker_id)
+        return [SafetyCheckRead.from_orm(check) for check in checks]
+
+    def list_safety_check_summaries(self, worker_id: UUID) -> List[SafetyCheckSummary]:
+        checks = self.repo.list_safety_checks(worker_id)
+        return [
+            SafetyCheckSummary(tier=check.tier, status=check.status)
+            for check in checks
+        ]
+
+    def get_worker_for_user(self, user_id: UUID) -> Worker | None:
+        return self.repo.get_by_user_id(user_id)
