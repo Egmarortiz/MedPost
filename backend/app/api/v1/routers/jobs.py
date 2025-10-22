@@ -126,8 +126,8 @@ def list_applications(
 
 @router.get("/applications/facility", response_model=List[JobApplicationRead])
 def list_facility_applications(
-    job_post_id: Optional[UUID] = Query(None),
     current_user: FacilityUser,
+    job_post_id: Optional[UUID] = Query(None),
     service: JobsService = Depends(get_jobs_service),
 ) -> List[JobApplicationRead]:
     facility_id = _get_facility_id(service, current_user)
