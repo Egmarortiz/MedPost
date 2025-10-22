@@ -71,3 +71,10 @@ class WorkerRepository(SQLAlchemyRepository[Worker]):
     def list_credentials(self, worker_id: UUID) -> List[WorkerCredential]:
         stmt = select(WorkerCredential).where(WorkerCredential.worker_id == worker_id)
         return self.session.execute(stmt).scalars().all()
+
+    def get_credential(self, worker_id: UUID, credential_id: UUID) -> Optional[WorkerCredential]:
+        stmt = select(WorkerCredential).where(
+            WorkerCredential.worker_id == worker_id,
+            WorkerCredential.id == credential_id,
+        )
+        return self.session.execute(stmt).scalars().first()

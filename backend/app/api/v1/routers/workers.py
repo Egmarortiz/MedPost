@@ -130,3 +130,17 @@ def list_credentials(
     service: WorkersService = Depends(get_workers_service),
 ) -> List[WorkerCredentialRead]:
     return service.list_credentials(worker_id)
+
+
+@router.delete(
+    "/{worker_id}/credentials/{credential_id}", status_code=status.HTTP_204_NO_CONTENT
+)
+def delete_credential(
+    worker_id: UUID,
+    credential_id: UUID,
+    service: WorkersService = Depends(get_workers_service),
+) -> Response:
+    deleted = service.delete_credential(worker_id, credential_id)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Credential not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

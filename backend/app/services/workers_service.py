@@ -76,3 +76,11 @@ class WorkersService:
     def list_credentials(self, worker_id: UUID) -> List[WorkerCredentialRead]:
         credentials = self.repo.list_credentials(worker_id)
         return [WorkerCredentialRead.from_orm(cred) for cred in credentials]
+
+    def delete_credential(self, worker_id: UUID, credential_id: UUID) -> bool:
+        credential = self.repo.get_credential(worker_id, credential_id)
+        if not credential:
+            return False
+        self.repo.delete(credential)
+        self.session.commit()
+        return True

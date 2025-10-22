@@ -9,6 +9,9 @@ from app.models import SpecialtyType, CredentialType
 DEFAULT_CREDENTIAL_TYPES = (
     ("RN_LICENSE", "Registered Nurse License"),
     ("CNA_CERT", "Certified Nursing Assistant"),
+    ("BLS", "Basic Life Support"),
+    ("ACLS", "Advanced Cardiovascular Life Support"),
+    ("PALS", "Pediatric Advanced Life Support"),
 )
 
 DEFAULT_SPECIALTIES = (
