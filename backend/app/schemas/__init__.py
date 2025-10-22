@@ -18,6 +18,7 @@ from .facility import (
     FacilityCreate,
     FacilityRead,
     FacilityUpdate,
+    FacilityCertificationCreate,
     FacilityCertificationRead,
     FacilityWithCertifications,
 )
@@ -65,6 +66,7 @@ __all__ = [
     "FacilityCreate",
     "FacilityRead",
     "FacilityUpdate",
+    "FacilityCertificationCreate",
     "FacilityCertificationRead",
     "FacilityWithCertifications",
     "JobPostCreate",

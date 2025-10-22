@@ -8,7 +8,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Facility, FacilityCertification
+from app.models import Facility, FacilityCertification, FacilityCertificationCode
 from app.schemas import FacilityFilter, PaginationParams
 from .base import SQLAlchemyRepository
 
@@ -29,6 +29,20 @@ class FacilityRepository(SQLAlchemyRepository[Facility]):
             FacilityCertification.facility_id == facility_id
         )
         return self.session.execute(stmt).scalars().all()
+
+    def get_certification_by_code(
+        self, facility_id: UUID, code: FacilityCertificationCode
+    ) -> Optional[FacilityCertification]:
+        stmt = select(FacilityCertification).where(
+            FacilityCertification.facility_id == facility_id,
+            FacilityCertification.code == code,
+        )
+        return self.session.execute(stmt).scalars().first()
+
+    def add_certification(self, certification: FacilityCertification) -> FacilityCertification:
+        self.session.add(certification)
+        self.session.flush()
+        return certification
 
     def list_facilities(
         self, filters: FacilityFilter, params: Optional[PaginationParams] = None

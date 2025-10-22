@@ -184,14 +184,18 @@ class FacilityCertification(Base):
     code: Mapped[FacilityCertificationCode] = mapped_column(
         SAEnum(FacilityCertificationCode), index=True
     )
-    status: Mapped[VerificationStatus] = mapped_column(SAEnum(VerificationStatus), default=VerificationStatus.NOT_STARTED, nullable=False
+    status: Mapped[VerificationStatus] = mapped_column(
+            SAEnum(VerificationStatus),
+            default=VerificationStatus.NOT_STARTED,
+            nullable=False,
     )
     evidence_url: Mapped[Optional[str]] = mapped_column(String(512))
     verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
 
     facility: Mapped["Facility"] = relationship(back_populates="certifications")
 
-    __table_args__ = (UniqueConstraint(
+    __table_args__ = (
+            UniqueConstraint(
             "facility_id", "code", name="uq_facility_certification_once"
         ),
     )

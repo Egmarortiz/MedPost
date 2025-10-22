@@ -7,9 +7,9 @@ from uuid import UUID
 from pydantic import BaseModel, Field, HttpUrl
 
 from app.core import DEFAULT_COUNTRY, DEFAULT_STATE_PROVINCE, PuertoRicoMunicipality
-from .common import APIModel
 from app.models import FacilityCertificationCode, Industry, VerificationStatus
 
+from .common import APIModel
 
 class FacilityBase(BaseModel):
     legal_name: str
@@ -65,6 +65,11 @@ class FacilityCertificationRead(APIModel):
     status: VerificationStatus
     evidence_url: Optional[HttpUrl]
     verified_at: Optional[datetime]
+
+
+class FacilityCertificationCreate(BaseModel):
+    code: FacilityCertificationCode
+    evidence_url: HttpUrl
 
 
 class FacilityWithCertifications(FacilityRead):
