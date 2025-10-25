@@ -36,18 +36,15 @@ backend/
 │  │  ├─ facilities_service.py
 │  │  └─ jobs_service.py
 │  ├─ api/
-│  │  ├─ deps.py                # FastAPI deps (get_db, current_user, role guards)
-│  │  └─ v1/
-│  │     ├─ __init__.py
-│  │     └─ routers/
-│  │        ├─ workers.py       # GET /workers, GET /workers/{id}
-│  │        ├─ facilities.py    # GET /facilities, POST /facilities/{id}/jobs
-│  │        ├─ jobs.py          # GET /job-posts, GET /job-posts/{id}, POST apply
-│  │        └─ auth.py          # (placeholder) login/register if needed
-│  └─ graphql/
-│     ├─ schema.py              # Strawberry/Ariadne schema factory
-│     ├─ types.py               # GraphQL types mapped from models/schemas
-│     └─ resolvers.py           # Queries/Mutations using services
+│     ├─ deps.py                # FastAPI deps (get_db, current_user, role guards)
+│     └─ v1/
+│        ├─ __init__.py
+│        └─ routers/
+│           ├─ workers.py       # GET /workers, GET /workers/{id}
+│           ├─ facilities.py    # GET /facilities, POST /facilities/{id}/jobs
+│           ├─ jobs.py          # GET /job-posts, GET /job-posts/{id}, POST apply
+│           └─ auth.py          # (placeholder) login/register if needed
+|
 └─ .env.example
 ```
 # Notes on design structure
