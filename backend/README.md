@@ -1,91 +1,93 @@
 ## File structure
 ```
 backend/
-├─ alembic.ini
-├─ migrations/
-│  ├─ env.py
-│  └─ versions/                 # autogen files live here
-├─ app/
-│  ├─ main.py                   # FastAPI app factory + GraphQL mount
-│  ├─ core/
-│  │  ├─ settings.py            # Pydantic BaseSettings (DB URL, JWT, CORS)
-│  │  └─ security.py            # auth helpers (JWT decode, role checks)
-│  ├─ db/
-│  │  ├─ session.py             # engine, SessionLocal, get_db()
-│  │  └─ init_db.py             # seeders (credential types, specialties)
-│  ├─ models/
-│  │  ├─ __init__.py            # imports worker, facility, jobs -> register mappers
-│  │  ├─ base_model.py          # Base, Enums, Endorsement
-│  │  ├─ worker.py
-│  │  ├─ facility.py
-│  │  └─ jobs.py
-│  ├─ schemas/                  # Pydantic DTOs
-│  │  ├─ common.py              # Enums & base response, pagination
-│  │  ├─ filters.py             # filter DTOs (workers/jobs)
-│  │  ├─ worker.py
-│  │  ├─ facility.py
-│  │  ├─ jobs.py
-│  │  └─ auth.py
-│  ├─ repositories/             # DB queries only (no business rules)
-│  │  ├─ base.py
-│  │  ├─ workers.py
-│  │  ├─ facilities.py
-│  │  └─ jobs.py
-│  ├─ services/                 # business logic / invariants
-│  │  ├─ workers_service.py
-│  │  ├─ facilities_service.py
-│  │  └─ jobs_service.py
-│  ├─ api/
-│     ├─ deps.py                # FastAPI deps (get_db, current_user, role guards)
-│     └─ v1/
-│        ├─ __init__.py
-│        └─ routers/
-│           ├─ workers.py       # GET /workers, GET /workers/{id}
-│           ├─ facilities.py    # GET /facilities, POST /facilities/{id}/jobs
-│           ├─ jobs.py          # GET /job-posts, GET /job-posts/{id}, POST apply
-│           └─ auth.py          # (placeholder) login/register if needed
-|
-└─ .env.example
+├── README.md
+├── alembic.ini                  # Alembic configuration pointing at app.models.Base
+├── requirements.txt             # Backend runtime + tooling dependencies
+├── migrations/                  # Database migration environment
+│   ├── env.py                   # Alembic environment wired to SQLAlchemy metadata
+│   ├── script.py.mako           # Alembic revision template
+│   └── versions/                # Auto-generated & handwritten revision files
+└── app/
+    ├── __init__.py
+    ├── main.py                  # FastAPI app factory that mounts the REST API
+    ├── core/                    # Cross-cutting concerns & configuration
+    │   ├── __init__.py
+    │   ├── locations.py         # Canonical state/country lookups used in validation
+    │   ├── security.py          # JWT helpers, password hashing, role utilities
+    │   └── settings.py          # Pydantic BaseSettings (DB URL, CORS, secrets)
+    ├── db/                      # Database bootstrapping helpers
+    │   ├── __init__.py
+    │   ├── init_db.py           # Seed routines for reference data (credentials, specialties)
+    │   └── session.py           # Engine, SessionLocal factory, FastAPI dependency
+    ├── models/                  # SQLAlchemy ORM models & metadata registration
+    │   ├── __init__.py          # Imports model modules so Alembic discovers mappers
+    │   ├── base_model.py        # Declarative Base, mixins, common enums
+    │   ├── facility.py
+    │   ├── jobs.py
+    │   ├── user.py
+    │   └── worker.py
+    ├── repositories/            # Raw data-access layer (SQLAlchemy queries only)
+    │   ├── __init__.py
+    │   ├── base.py              # Generic CRUD helpers shared by concrete repositories
+    │   ├── endorsements.py
+    │   ├── facilities.py
+    │   ├── jobs.py
+    │   ├── users.py
+    │   └── workers.py
+    ├── schemas/                 # Pydantic request/response contracts
+    │   ├── __init__.py
+    │   ├── auth.py
+    │   ├── common.py            # Shared enums, pagination, and response wrappers
+    │   ├── endorsement.py
+    │   ├── facility.py
+    │   ├── filters.py           # Filtering payloads used by listing endpoints
+    │   ├── jobs.py
+    │   └── worker.py
+    ├── services/                # Domain logic orchestrating repositories & policies
+    │   ├── __init__.py
+    │   ├── auth_service.py
+    │   ├── endorsements_service.py
+    │   ├── facilities_service.py
+    │   ├── jobs_service.py
+    │   └── workers_service.py
+    └── api/                     # FastAPI routers and dependency wiring
+        ├── __init__.py
+        ├── deps.py              # Dependency providers (DB session, auth, pagination)
+        └── v1/
+            ├── __init__.py
+            └── routers/         # Versioned REST endpoints exposing services
+                ├── __init__.py
+                ├── auth.py
+                ├── endorsements.py
+                ├── facilities.py
+                ├── facility_certifications.py
+                ├── jobs.py
+                └── workers.py
 ```
 # Notes on design structure
-- models are isolated and already modularized.
+- Models are isolated and modularised so Alembic can import a single `app.models` package and discover all table mappings automatically.
 
-- repositories hold raw SQLAlchemy queries (testable, reusable).
+- Repositories hold raw SQLAlchemy queries (testable, reusable) and expose a thin CRUD interface to the rest of the app.
 
-- services enforce app rules (e.g., “no guests”, “title must match role”).
+- Services enforce business rules (licensing checks, role rules, application flows) and orchestrate multiple repositories.
 
-- routers are thin adapters (request/response mapping).
+- Routers are transport adapters: they validate requests with Pydantic schemas, call services, and translate results back into responses.- graphql sits beside REST, reusing services.
 
-- graphql sits beside REST, reusing services.
+- Alembic resolves metadata from `app.models.base_model.Base`, keeping migrations in sync with ORM models via the `migrations/env.py` bridge.
 
-- alembic points to Base.metadata via app.models.
+- Versioned REST endpoints live under `app/api/v1/routers`, business logic sits inside `app/services`, and data access is handled in `app/repositories`.
 
-- REST endpoints live under `app/api/v1/routers`, business logic sits inside `app/services`, and data access is handled in `app/repositories`. The GraphQL API shares the same services, and Alembic migrations are configured via `migrations/env.py`.
+- The default base URL for local development is http://127.0.0.1:8000/api/v1 (for example, http://127.0.0.1:8000/api/v1/workers). Overriding `--host`/`--port` when launching FastAPI updates the base URL accordingly.
 
-- the full base URL for endpoints during local development becomes http://127.0.0.1:8000/api/v1 (e.g., http://127.0.0.1:8000/api/v1/workers).
-
-- If we override the host/port flags (for example, fastapi dev app/main.py --host 0.0.0.0 --port 9000), the CLI will serve on those values instead, and the base URL updates accordingly.
 
 ## Tech Stack
 
-Front-end: React Native, Emotion CSS library (WebApp if React Native doesn’t)
-Back-end: Java, Python
+Front-end: React Native, Emotion CSS library
+Back-end: Python, SQLAlchemy, Alembic
 Databases: PostgreSQL
-API’s: FastAPI, Trulio SDK API
-Additional resources: N8N Automation, Gradle Build Tool, Mermaid.js
-
-## Tech Stack official documentation
-
-PostgreSQL: https://www.postgresql.org/
-SQLAlchemy2.0: https://docs.sqlalchemy.org/en/20/index.html#
-Python: https://docs.python.org/3/
-FastAPI: https://fastapi.tiangolo.com/
-
-## Key design priciples for SQLAlquemy ORM
-
-One-to-Many: One record in a table can be associated with multiple records in another table (e.g., one user can have many posts).
-Many-to-Many: Multiple records in one table can be associated with multiple records in another table (e.g., many users can follow many other users). This often involves an intermediary "association table."
-One-to-One: One record in a table is exclusively linked to one record in another table (e.g., a user might have one profile).
+API’s: FastAPI
+Additional resources: N8N Automation, Mermaid.js
 
 ## Alembic & database setup
 
