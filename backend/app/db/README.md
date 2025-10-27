@@ -1,6 +1,16 @@
+# Database Access Layer
+
+The `db` package is the glue between SQLAlchemy models and the PostgreSQL server.  It exposes utilities that other layers import instead of touching engine details directly.
+
+- **session.py** builds the SQLAlchemy engine and `SessionLocal` factory using settings from `core.settings`, and provides dependency helpers for FastAPI routes.
+- **init_db.py** runs one-time bootstrap tasks (such as creating an initial superuser or seeding reference data) when the application starts.
+- `__init__.py` exposes convenience imports so other modules can simply write `from app.db import get_db`.
+
+By centralizing connection management here, services and repositories can focus on business queries while sharing a single, well-configured database session lifecycle.
+
 # MedPost Database Operations Guide
 
-This README gives a plug-and-play checklist for connecting to the MedPost PostgreSQL database, inspecting schemas and tables, querying data safely, and avoiding common pitfalls.
+Here is a plug-and-play checklist for connecting to the MedPost PostgreSQL database, inspecting schemas and tables, querying data safely, and avoiding common pitfalls.
 
 ---
 
