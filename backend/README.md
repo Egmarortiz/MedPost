@@ -83,11 +83,15 @@ backend/
 
 ## Tech Stack
 
-Front-end: React Native, Emotion CSS library
-Back-end: Python, SQLAlchemy, Alembic
-Databases: PostgreSQL
-API’s: FastAPI
-Additional resources: N8N Automation, Mermaid.js
+- Front-end: React Native, Emotion CSS library
+
+- Back-end: Python, SQLAlchemy ORM, Alembic migration
+
+- Databases: PostgreSQL
+
+- API’s: FastAPI
+
+- Additional resources: N8N Automation, Mermaid.js
 
 ## Alembic & database setup
 
@@ -131,7 +135,3 @@ Additional resources: N8N Automation, Mermaid.js
 5. **Regenerate the database schema** after model changes by repeating the revision/upgrade cycle above.
 6. **Run the FastAPI app** and exercise CRUD APIs—both the app and Alembic sessions share the same `DATABASE_URL`, so they operate on the same PostgreSQL schema.
 
-- user/role: medpost
-- psswd: MedPost123
-- Official db: medpost_dev
-- DB URL: postgresql+psycopg://medpost:MedPost123@localhost:5432/medpost_dev
