@@ -8,15 +8,21 @@ import {
   ScrollView,
   ActivityIndicator,
   StyleSheet,
+  SafeAreaView,
+  TextInput,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import axios from "axios";
+import { useRouter } from "expo-router";
+import { useAuth } from "../../hooks/useAuth";
+import { API_ENDPOINTS, API_BASE_URL } from "../../config/api";
 
-export default function IdentityVerificationScreen() {
-  const [selfie, setSelfie] = useState<string | null>(null);
+export default function FacilityVerificationScreen() {
+  const router = useRouter();
+  const { user, token } = useAuth();
   const [idPhoto, setIdPhoto] = useState<string | null>(null);
-  const [errors, setErrors] = useState<{ selfie?: string; idPhoto?: string }>(
-    {}
-  );
+  const [licenseId, setLicenseId] = useState<string>("");
+  const [errors, setErrors] = useState<{ idPhoto?: string; licenseId?: string }>({});
   const [submitting, setSubmitting] = useState(false);
 
   const requestCameraPermissions = async () => {
@@ -40,7 +46,7 @@ export default function IdentityVerificationScreen() {
     if (!granted) return;
 
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -57,87 +63,177 @@ export default function IdentityVerificationScreen() {
     }
   };
 
+  const uploadImage = async (imageUri: string): Promise<string> => {
+    try {
+      const formData = new FormData();
+      formData.append("file", {
+        uri: imageUri,
+        type: "image/jpeg",
+        name: "upload.jpg",
+      } as any);
+
+      const response = await axios.post(API_ENDPOINTS.UPLOAD_IMAGE, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const relativeUrl = response.data.url || response.data.file_url;
+      const absoluteUrl = relativeUrl.startsWith('http') 
+        ? relativeUrl 
+        : `${API_BASE_URL}${relativeUrl}`;
+      
+      console.log("Upload response:", response.data);
+      console.log("Absolute URL:", absoluteUrl);
+      return absoluteUrl;
+    } catch (error) {
+      console.error("Image upload error:", error);
+      throw new Error("Failed to upload image");
+    }
+  };
+
   const handleSubmit = async () => {
     const newErrors: typeof errors = {};
-    if (!selfie) newErrors.selfie = "Please upload a clear selfie.";
-    if (!idPhoto) newErrors.idPhoto = "Please upload your ID photo.";
+    if (!idPhoto) newErrors.idPhoto = "Please upload your business ID or certification.";
+    if (!licenseId.trim()) newErrors.licenseId = "Please enter the Business License ID number.";
     setErrors(newErrors);
 
-    if (newErrors.selfie || newErrors.idPhoto) return;
+    if (Object.keys(newErrors).length > 0) return;
 
     try {
       setSubmitting(true);
 
-      const formData = new FormData();
-      formData.append("certification", {
-        uri: certification!,
-        name: "certification.jpg",
-        type: "image/jpeg",
-      } as any);
+      console.log("Uploading verification document...");
+      const idPhotoUrl = await uploadImage(idPhoto!);
 
-      const res = await fetch(
-        "http://127.0.0.1:8000/{facility_id}/certifications",
+      console.log("Submitting facility verification...");
+      const response = await axios.post(
+        API_ENDPOINTS.FACILITY_VERIFY,
         {
-          method: "POST",
-          body: formData,
-          headers: { "Content-Type": "multipart/form-data" },
+          facility_id: user?.facility_id,
+          id_photo_url: idPhotoUrl,
+          license_id: licenseId.trim(),
+          submitted_at: new Date().toISOString(),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
-      if (!res.ok) throw new Error("Failed to submit verification");
+      console.log("Verification submitted:", response.data);
 
       Alert.alert(
-        "Submitted",
-        "Your identity verification has been sent to MedPost."
+        "Success",
+        "Your verification has been submitted to MedPost. You will be notified once it's reviewed.",
+        [
+          {
+            text: "OK",
+            onPress: () => router.push("/(tabs)/facility-profile"),
+          },
+        ]
       );
-    } catch (err) {
-      Alert.alert("Error", "Could not submit verification. Please try again.");
+    } catch (error: any) {
+      console.error("Verification error:", error?.response?.data || error.message);
+      Alert.alert(
+        "Error",
+        error?.response?.data?.detail || "Could not submit verification. Please try again."
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
-  const submitDisabled = !selfie || !idPhoto || submitting;
-
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>Identity Verification</Text>
-
-      <View style={styles.imageContainer}>
-        {selfie ? (
-          <Image source={{ uri: selfie }} style={styles.imagePreview} />
-        ) : (
-          <Text style={styles.imagePlaceholder}>
-            Upload a photo of your business certificate
-          </Text>
-        )}
-        <TouchableOpacity
-          style={styles.uploadButton}
-          onPress={() => pickImage(setSelfie, "selfie")}
-        >
-          <Text style={styles.uploadText}>Upload Certification</Text>
+    <SafeAreaView style={styles.safeContainer}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Text style={styles.backButton}>‹</Text>
         </TouchableOpacity>
-        {errors.selfie ? (
-          <Text style={styles.errorText}>{errors.selfie}</Text>
-        ) : null}
+        <Image
+          source={require("../../assets/images/MedPost-Icon.png")}
+          style={styles.headerLogo}
+        />
+        <View style={styles.headerSpacer} />
       </View>
+      <View style={{ flex: 1, backgroundColor: '#fff' }}>
+        <ScrollView contentContainerStyle={styles.container}>
+          <Text style={styles.headerLabel}>Facility Verification</Text>
+          <Text style={styles.instructionText}>
+            Please upload your business license, registration certificate, or other official documentation to verify your facility.
+          </Text>
+          <Text style={styles.warningText}>
+            This is required to complete your facility profile and start posting jobs.
+          </Text>
 
-      <TouchableOpacity
-        style={[styles.submitButton, submitDisabled && { opacity: 0.6 }]}
-        onPress={handleSubmit}
-        disabled={submitDisabled}
-      >
-        {submitting ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.submitText}>Submit</Text>
-        )}
-      </TouchableOpacity>
-    </ScrollView>
+          {/* ID Photo Section */}
+          <View style={styles.imageContainer}>
+            <Text style={styles.sectionLabel}>Business Documentation</Text>
+            {idPhoto ? (
+              <Image source={{ uri: idPhoto }} style={styles.imagePreview} />
+            ) : (
+              <Text style={styles.imagePlaceholder}>No document selected</Text>
+            )}
+            <TouchableOpacity
+              style={styles.uploadButton}
+              onPress={() => pickImage(setIdPhoto, "idPhoto")}
+            >
+              <Text style={styles.uploadText}>Upload Document</Text>
+            </TouchableOpacity>
+            {errors.idPhoto ? (
+              <Text style={styles.errorText}>{errors.idPhoto}</Text>
+            ) : null}
+          </View>
+
+          {/* License ID Section */}
+          <View style={styles.formSection}>
+            <Text style={styles.sectionLabel}>Business License ID Number</Text>
+            <Text style={styles.sectionDescription}>
+              Please enter the license ID number visible on your business license or certification document.
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g., BL-2024-12345"
+              value={licenseId}
+              onChangeText={(text) => {
+                setLicenseId(text);
+                if (errors.licenseId) {
+                  setErrors((prev) => ({ ...prev, licenseId: undefined }));
+                }
+              }}
+              placeholderTextColor="#999"
+            />
+            {errors.licenseId ? (
+              <Text style={styles.errorText}>{errors.licenseId}</Text>
+            ) : null}
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.submitButton,
+              (!idPhoto || submitting) && { opacity: 0.6 },
+            ]}
+            onPress={handleSubmit}
+            disabled={!idPhoto || submitting}
+          >
+            {submitting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.submitText}>Submit Verification</Text>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+    backgroundColor: "#00ced1",
+  },
   container: {
     flexGrow: 1,
     padding: 20,
@@ -145,10 +241,67 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
   },
   header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: "#00ced1",
+    borderBottomWidth: 1,
+    borderBottomColor: "#00ced1",
+  },
+  backButton: {
+    fontSize: 28,
+    color: "#fff",
+    fontWeight: "300",
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#2c3e50",
+    flex: 1,
+    textAlign: "center",
+  },
+  headerSpacer: {
+    width: 60,
+  },
+  headerLogo: {
+    width: 60,
+    height: 60,
+    resizeMode: "contain",
+    flex: 1,
+  },
+  headerLabel: {
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 15,
     textAlign: "center",
+  },
+  instructionText: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  warningText: {
+    fontSize: 13,
+    color: "#f39c12",
+    marginBottom: 20,
+    textAlign: "center",
+    fontStyle: "italic",
+  },
+  sectionLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  sectionDescription: {
+    fontSize: 13,
+    color: "#666",
+    marginBottom: 12,
+    lineHeight: 18,
   },
   imageContainer: {
     alignItems: "center",
@@ -173,6 +326,20 @@ const styles = StyleSheet.create({
   uploadText: {
     color: "#fff",
     fontWeight: "bold",
+  },
+  formSection: {
+    marginBottom: 20,
+    paddingHorizontal: 0,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    fontSize: 16,
+    color: "#333",
+    backgroundColor: "#f9f9f9",
   },
   errorText: {
     color: "red",

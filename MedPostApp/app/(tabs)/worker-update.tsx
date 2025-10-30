@@ -8,16 +8,38 @@ import {
   StyleSheet,
   Image,
   Alert,
+  ActivityIndicator,
+  SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
 import { useRouter } from "expo-router";
 import DropDownPicker from "react-native-dropdown-picker";
 import { Formik } from "formik";
 import * as yup from "yup";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import { API_ENDPOINTS } from "../../config/api";
+
+const API_BASE_URL = "https://blithefully-nonamendable-krystin.ngrok-free.dev";
+
+const PUERTO_RICO_MUNICIPALITIES = [
+  "Adjuntas", "Aguada", "Aguadilla", "Aguas Buenas", "Aibonito", "Añasco", "Arecibo", "Arroyo",
+  "Barceloneta", "Barranquitas", "Bayamón", "Cabo Rojo", "Caguas", "Camuy", "Canóvanas", "Carolina",
+  "Cataño", "Cayey", "Ceiba", "Ciales", "Cidra", "Coamo", "Comerío", "Corozal", "Culebra",
+  "Dorado", "Fajardo", "Florida", "Guánica", "Guayama", "Guayanilla", "Guaynabo", "Gurabo",
+  "Hatillo", "Hormigueros", "Humacao", "Isabela", "Jayuya", "Juana Díaz", "Juncos", "Lajas",
+  "Lares", "Las Marías", "Las Piedras", "Loíza", "Luquillo", "Manatí", "Maricao", "Maunabo",
+  "Mayagüez", "Moca", "Morovis", "Naguabo", "Naranjito", "Orocovis", "Patillas", "Peñuelas",
+  "Ponce", "Puerto Real", "Quebradillas", "Rincón", "Río Grande", "Sábana Grande", "Salinas",
+  "San Germán", "San Juan", "San Sebastián", "Santa Isabel", "Santo Domingo", "Toa Alta", "Toa Baja",
+  "Trujillo Alto", "Utuado", "Vega Alta", "Vega Baja", "Vieques", "Villalba", "Yabucoa", "Yauco",
+];
 
 const workerUpdateValidationSchema = yup.object().shape({
   full_name: yup.string().required("Full name is required"),
-  email: yup.string().email("Invalid email").required("Email is required"),
   phone_e164: yup.string().nullable(),
   title: yup.string().required("Title is required"),
   education_level: yup.string().required("Education level is required"),
@@ -35,9 +57,60 @@ export default function WorkerProfileUpdate() {
   const [image, setImage] = useState<string | null>(null);
   const [openTitle, setOpenTitle] = useState(false);
   const [openEducation, setOpenEducation] = useState(false);
+  const [openCity, setOpenCity] = useState(false);
+  const [existingWorker, setExistingWorker] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [resume, setResume] = useState<string | null>(null);
+  const [resumeSelected, setResumeSelected] = useState(false);
 
   useEffect(() => {
-    setImage(existingWorker.profile_image_url);
+    const fetchWorker = async () => {
+      try {
+        const token = await AsyncStorage.getItem("token");
+        console.log("Token exists:", !!token);
+        if (!token) {
+          Alert.alert("Error", "You must be logged in to edit your profile.");
+          router.push("/(tabs)/worker-profile");
+          return;
+        }
+
+        console.log("Fetching worker profile from:", API_ENDPOINTS.WORKER_PROFILE);
+        const response = await axios.get(API_ENDPOINTS.WORKER_PROFILE, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        console.log("Worker profile fetched successfully:", response.data);
+        const data = response.data;
+        setExistingWorker(data);
+        setImage(data.profile_image_url);
+      } catch (error: any) {
+        console.error("Error fetching worker:", error?.response?.status, error?.message);
+        if (error?.response?.status === 401 || error?.response?.status === 403) {
+          Alert.alert("Error", "Your session has expired. Please log in again.");
+          router.push("/(tabs)/worker-profile");
+        } else {
+          console.error("API Error:", error?.response?.data);
+          setExistingWorker({
+            full_name: "",
+            email: "",
+            phone_e164: "",
+            title: "",
+            education_level: "",
+            city: "",
+            state_province: "",
+            postal_code: "",
+            bio: "",
+          });
+          Alert.alert("Error", "Could not load your profile. Using empty form.");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWorker();
   }, []);
 
   const pickImage = async () => {
@@ -48,7 +121,7 @@ export default function WorkerProfileUpdate() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       quality: 1,
     });
@@ -58,24 +131,186 @@ export default function WorkerProfileUpdate() {
     }
   };
 
-  const handleUpdateSubmit = (values: any) => {
-    const updatedData = {
-      ...values,
-      profile_image_url: image,
-    };
+  const pickResume = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+      });
 
-    Alert.alert("Profile Updated", JSON.stringify(updatedData, null, 2));
-    router.push("/profile");
+      if (!result.canceled) {
+        setResume(result.assets[0].uri);
+        setResumeSelected(true);
+        Alert.alert("Success", "Resume selected successfully!");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Could not select resume document.");
+      console.error(error);
+    }
   };
 
+  const uploadFile = async (
+    fileUri: string,
+    endpoint: string
+  ): Promise<string | null> => {
+    try {
+      const formData = new FormData();
+      const filename = fileUri.split("/").pop() || "file";
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match
+        ? `${endpoint.includes("image") ? "image" : "application"}/${match[1]}`
+        : "application/octet-stream";
+
+      formData.append("file", {
+        uri: fileUri,
+        name: filename,
+        type: type,
+      } as any);
+
+      console.log(`Uploading file to ${endpoint}...`);
+
+      const response = await axios.post(endpoint, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      console.log("Upload response:", response.data);
+
+      const relativeUrl = response.data.url;
+      const absoluteUrl = relativeUrl.startsWith("http")
+        ? relativeUrl
+        : `${API_BASE_URL}${relativeUrl}`;
+
+      console.log("Absolute URL:", absoluteUrl);
+      return absoluteUrl;
+    } catch (error: any) {
+      console.error(
+        "File upload error:",
+        error?.response?.data || error.message
+      );
+      throw new Error("file upload failed");
+    }
+  };
+
+  const handleUpdateSubmit = async (values: any) => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      if (!token) {
+        Alert.alert("Error", "You must be logged in to update your profile.");
+        return;
+      }
+
+      let profileImageUrl = null;
+      let resumeUrl = null;
+
+      if (image && image.startsWith("file://")) {
+        try {
+          console.log("Uploading profile image...");
+          profileImageUrl = await uploadFile(image, API_ENDPOINTS.UPLOAD_IMAGE);
+          console.log("Profile image uploaded:", profileImageUrl);
+        } catch (error) {
+          console.error("Error uploading image:", error);
+          Alert.alert("Error", "Could not upload profile image. Continuing without image...");
+        }
+      }
+
+      if (resume && resume.startsWith("file://")) {
+        try {
+          console.log("Uploading resume...");
+          resumeUrl = await uploadFile(resume, API_ENDPOINTS.UPLOAD_DOCUMENT);
+          console.log("Resume uploaded:", resumeUrl);
+        } catch (error) {
+          console.error("Error uploading resume:", error);
+          Alert.alert("Error", "Could not upload resume. Continuing without resume...");
+        }
+      }
+
+      const updatedData: any = {
+        full_name: values.full_name,
+        title: values.title,
+        bio: values.bio,
+        city: values.city,
+        state_province: values.state_province,
+        postal_code: String(values.postal_code),
+        phone: values.phone_e164 || values.phone,
+        education_level: values.education_level,
+      };
+
+      if (profileImageUrl) {
+        updatedData.profile_image_url = profileImageUrl;
+      }
+
+      if (resumeUrl) {
+        updatedData.resume_url = resumeUrl;
+      }
+
+      console.log("Sending update data:", updatedData);
+
+      const response = await axios.patch(API_ENDPOINTS.WORKER_UPDATE, updatedData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (profileImageUrl) {
+        setImage(profileImageUrl);
+      }
+
+      if (resumeUrl) {
+        setResume(resumeUrl);
+      }
+
+      Alert.alert("Success", "Profile updated successfully!");
+      router.push("/(tabs)/worker-profile");
+    } catch (error: any) {
+      console.error("Error updating profile:", error);
+      console.error("Response data:", error?.response?.data);
+      console.error("Response status:", error?.response?.status);
+      const errorMessage = error?.response?.data?.detail || "Could not update your profile. Please try again.";
+      Alert.alert("Error", errorMessage);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#00ced1" />
+        <Text>Loading profile...</Text>
+      </View>
+    );
+  }
+
+  if (!existingWorker) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text>No profile data found.</Text>
+      </View>
+    );
+  }
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>Update Your Profile</Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1 }}
+    >
+      <SafeAreaView style={styles.safeContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.push("/(tabs)/worker-profile")}>
+            <Text style={styles.backButton}>‹</Text>
+          </TouchableOpacity>
+          <Image
+            source={require("../../assets/images/MedPost-Icon.png")}
+            style={styles.headerLogo}
+          />
+          <View style={styles.headerSpacer} />
+        </View>
+        <ScrollView contentContainerStyle={styles.container} nestedScrollEnabled={true}>
 
       <Formik
         initialValues={existingWorker}
         validationSchema={workerUpdateValidationSchema}
         onSubmit={handleUpdateSubmit}
+        enableReinitialize
       >
         {({ handleChange, handleBlur, handleSubmit, setFieldValue, values, errors, touched }) => (
           <>
@@ -87,6 +322,16 @@ export default function WorkerProfileUpdate() {
               )}
               <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
                 <Text style={styles.uploadText}>Change Profile Image</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Resume</Text>
+              <Text style={styles.resumeStatus}>
+                {resumeSelected ? "Resume selected" : "No Resume Selected"}
+              </Text>
+              <TouchableOpacity style={styles.resumeUploadButton} onPress={pickResume}>
+                <Text style={styles.resumeUploadText}>Upload Resume</Text>
               </TouchableOpacity>
             </View>
 
@@ -104,13 +349,11 @@ export default function WorkerProfileUpdate() {
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Email</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: "#999" }]}
                 keyboardType="email-address"
                 value={values.email}
-                onChangeText={handleChange("email")}
-                onBlur={handleBlur("email")}
+                editable={false}
               />
-              {errors.email && touched.email && <Text style={styles.errorText}>{errors.email}</Text>}
             </View>
 
             <View style={styles.inputContainer}>
@@ -130,19 +373,18 @@ export default function WorkerProfileUpdate() {
                 open={openTitle}
                 value={values.title}
                 items={[
-                  { label: "Registered Nurse", value: "Registered Nurse" },
-                  { label: "Licensed Practical Nurse", value: "Licensed Practical Nurse" },
-                  { label: "Certified Nursing Assistant", value: "Certified Nursing Assistant" },
-                  { label: "Caregiver", value: "Caregiver" },
-                  { label: "Support", value: "Support" },
+                  { label: "Registered Nurse", value: "REGISTERED NURSE" },
+                  { label: "Licensed Practical Nurse", value: "LICENSED PRACTICAL NURSE" },
+                  { label: "Certified Nursing Assistant", value: "CERTIFIED NURSING ASSISTANT" },
+                  { label: "Caregiver", value: "CAREGIVER" },
+                  { label: "Support Staff", value: "SUPPORT STAFF" },
                 ]}
                 setOpen={setOpenTitle}
                 setValue={(callback) => setFieldValue("title", callback(values.title))}
                 style={styles.dropdown}
                 dropDownContainerStyle={styles.dropdownContainer}
                 placeholder="Select Title"
-                zIndex={3000}
-                zIndexInverse={1000}
+                listMode="MODAL"
               />
             </View>
 
@@ -152,29 +394,40 @@ export default function WorkerProfileUpdate() {
                 open={openEducation}
                 value={values.education_level}
                 items={[
-                  { label: "High School", value: "High School" },
-                  { label: "Associate's Degree", value: "Associate's Degree" },
-                  { label: "Bachelor's Degree", value: "Bachelor's Degree" },
-                  { label: "Master's Degree", value: "Master's Degree" },
-                  { label: "Doctorate's Degree", value: "Doctorate's Degree" },
+                  { label: "High School", value: "HIGH SCHOOL" },
+                  { label: "Associate's Degree", value: "ASSOCIATE'S DEGREE" },
+                  { label: "Bachelor's Degree", value: "BACHELOR'S DEGREE" },
+                  { label: "Master's Degree", value: "MASTER'S DEGREE" },
+                  { label: "Doctorate's Degree", value: "DOCTORATE'S DEGREE" },
                 ]}
                 setOpen={setOpenEducation}
                 setValue={(callback) => setFieldValue("education_level", callback(values.education_level))}
                 style={styles.dropdown}
                 dropDownContainerStyle={styles.dropdownContainer}
                 placeholder="Select Education Level"
-                zIndex={2000}
-                zIndexInverse={2000}
+                listMode="MODAL"
               />
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>City</Text>
-              <TextInput
-                style={styles.input}
+              <Text style={styles.label}>Municipality</Text>
+              <DropDownPicker
+                open={openCity}
                 value={values.city}
-                onChangeText={handleChange("city")}
-                onBlur={handleBlur("city")}
+                items={PUERTO_RICO_MUNICIPALITIES.map((municipality) => ({
+                  label: municipality,
+                  value: municipality,
+                }))}
+                setOpen={setOpenCity}
+                setValue={(callback) =>
+                  setFieldValue("city", callback(values.city))
+                }
+                style={styles.dropdown}
+                dropDownContainerStyle={styles.dropdownContainer}
+                placeholder="Select Municipality"
+                listMode="MODAL"
+                searchable={true}
+                searchPlaceholder="Search municipalities..."
               />
               {errors.city && touched.city && <Text style={styles.errorText}>{errors.city}</Text>}
             </View>
@@ -224,16 +477,56 @@ export default function WorkerProfileUpdate() {
           </>
         )}
       </Formik>
-    </ScrollView>
+        </ScrollView>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+    backgroundColor: "#00ced1",
+  },
   container: {
     padding: 20,
     backgroundColor: "#fff",
+    flexGrow: 1,
   },
   header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: "#00ced1",
+    borderBottomWidth: 1,
+    borderBottomColor: "#00ced1",
+  },
+  backButton: {
+    fontSize: 28,
+    color: "#fff",
+    fontWeight: "300",
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#2c3e50",
+    
+    flex: 1,
+    textAlign: "center",
+  },
+  headerSpacer: {
+    width: 60,
+  },
+  headerLogo: {
+    width: 60,
+    height: 60,
+    resizeMode: "contain",
+    flex: 1,
+  },
+  headerLabel: {
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 15,
@@ -256,10 +549,21 @@ const styles = StyleSheet.create({
   uploadButton: {
     backgroundColor: "#00ced1",
     paddingVertical: 10,
+
     paddingHorizontal: 20,
     borderRadius: 8,
   },
   uploadText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  resumeUploadButton: {
+    backgroundColor: "#00ced1",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  resumeUploadText: {
     color: "#fff",
     fontWeight: "bold",
   },
@@ -289,12 +593,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 5,
     backgroundColor: "#fff",
+    zIndex: 1000,
   },
   dropdownContainer: {
     borderColor: "#ddd",
     backgroundColor: "#fff",
     borderRadius: 8,
-    zIndex: 1000,
+    zIndex: 10000,
   },
   errorText: {
     color: "red",
@@ -312,5 +617,10 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
     fontSize: 16,
+  },
+  resumeStatus: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 10,
   },
 });

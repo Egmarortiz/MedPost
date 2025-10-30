@@ -9,15 +9,20 @@ import {
   Image,
   Alert,
   Platform,
+  SafeAreaView,
 } from "react-native";
+import axios from "axios";
+import { API_ENDPOINTS, API_BASE_URL } from "../../config/api";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import * as yup from "yup";
 import { Formik } from "formik";
 import DropDownPicker from "react-native-dropdown-picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAuth } from "../../hooks/useAuth";
 
 const facilityValidationSchema = yup.object().shape({
-  legal_name: yup.string().required("Legal name is required"),
+  legal_name: yup.string().required("Company name is required"),
   email: yup.string().email("Invalid email").required("Email is required"),
   password: yup
     .string()
@@ -25,29 +30,21 @@ const facilityValidationSchema = yup.object().shape({
     .required("Password is required"),
   industry: yup.string().required("Industry is required"),
   bio: yup.string().nullable(),
-  profile_image_url: yup.string().url("Invalid URL").nullable(),
   phone_e164: yup.string().nullable(),
-  company_size: yup
-    .number()
-    .typeError("Company size must be a number")
-    .required("Company size is required"),
-  founded_year: yup
-    .number()
-    .typeError("Founded year must be a number")
-    .required("Founded year is required"),
-  address_line1: yup.string().required("Address Line 1 is required"),
-  address_line2: yup.string().nullable(),
-  city: yup.string().required("City is required"),
-  state_province: yup.string().required("State/Province is required"),
-  postal_code: yup
-    .number()
-    .typeError("Postal code must be a number")
-    .required("Postal code is required"),
-  country: yup.string().required("Country is required"),
+  company_size_min: yup.string().nullable().transform(val => val === "" ? null : val),
+  company_size_max: yup.string().nullable().transform(val => val === "" ? null : val),
+  founded_year: yup.string().nullable().transform(val => val === "" ? null : val),
+  hq_address_line1: yup.string().nullable(),
+  hq_address_line2: yup.string().nullable(),
+  hq_city: yup.string().nullable(),
+  hq_state_province: yup.string().nullable(),
+  hq_postal_code: yup.string().nullable(),
+  hq_country: yup.string().nullable(),
 });
 
 export default function FacilityRegister() {
   const router = useRouter();
+  const { saveToken, saveUser } = useAuth();
   const [image, setImage] = useState<string | null>(null);
   const [openIndustry, setOpenIndustry] = useState(false);
 
@@ -63,7 +60,7 @@ export default function FacilityRegister() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       quality: 1,
     });
@@ -73,15 +70,166 @@ export default function FacilityRegister() {
     }
   };
 
-  const handleSubmitForm = (values: any) => {
-    const formData = { ...values, profile_image_url: image };
-    Alert.alert("Facility Registration", JSON.stringify(formData, null, 2));
-    router.push("/");
+  const uploadFile = async (fileUri: string, endpoint: string) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", {
+        uri: fileUri,
+        type: "image/jpeg",
+        name: "upload.jpg",
+      } as any);
+
+      console.log("Uploading to:", endpoint);
+      const response = await axios.post(endpoint, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      console.log("File upload response:", response.data);
+      const relativeUrl = response.data.url || response.data.file_url;
+      const absoluteUrl = relativeUrl.startsWith('http') 
+        ? relativeUrl 
+        : `${API_BASE_URL}${relativeUrl}`;
+      console.log("Absolute URL:", absoluteUrl);
+      return absoluteUrl;
+    } catch (error: any) {
+      console.error("File upload error:", error?.response?.data || error.message);
+      throw new Error("file upload failed");
+    }
+  };
+
+  const handleSubmitForm = async (values: any) => {
+    console.log("=== FACILITY REGISTRATION SUBMIT CALLED ===");
+    console.log("Form values:", values);
+    console.log("API ENDPOINT:", API_ENDPOINTS.FACILITY_REGISTER);
+
+    try {
+      console.log("Testing endpoint reachability...");
+      try {
+        await axios.get(API_ENDPOINTS.FACILITY_REGISTER.replace("/v1/auth/facility/register", "/"));
+        console.log("Endpoint is reachable!");
+      } catch (e) {
+        console.warn("Endpoint test failed, but continuing...");
+      }
+
+      let profileImageUrl = null;
+
+      if (image) {
+        console.log("Uploading profile image...");
+        profileImageUrl = await uploadFile(image, API_ENDPOINTS.UPLOAD_IMAGE);
+        console.log("Profile image uploaded:", profileImageUrl);
+      }
+
+      const requestData = {
+        email: values.email,
+        password: values.password,
+        legal_name: values.legal_name,
+        industry: values.industry,
+        bio: values.bio || null,
+        profile_image_url: profileImageUrl,
+        phone_e164: values.phone_e164 || null,
+        company_size_min: values.company_size_min ? parseInt(values.company_size_min) : null,
+        company_size_max: values.company_size_max ? parseInt(values.company_size_max) : null,
+        founded_year: values.founded_year ? parseInt(values.founded_year) : null,
+        hq_address_line1: values.hq_address_line1 || null,
+        hq_address_line2: values.hq_address_line2 || null,
+        hq_city: values.hq_city || null,
+        hq_state_province: values.hq_state_province || null,
+        hq_postal_code: values.hq_postal_code || null,
+        hq_country: values.hq_country || null,
+      };
+
+      console.log("Request payload:", JSON.stringify(requestData, null, 2));
+      console.log("Making POST request to:", API_ENDPOINTS.FACILITY_REGISTER);
+
+      const response = await axios.post(
+        API_ENDPOINTS.FACILITY_REGISTER,
+        requestData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          timeout: 30000,
+        }
+      );
+
+      console.log("Registration response received:", response.data);
+
+      if (response.status === 201 || response.status === 200) {
+        const { access_token, refresh_token, facility_id } = response.data;
+
+        console.log("Extracted data:", { access_token, refresh_token, facility_id });
+
+        await saveToken(access_token);
+        await saveUser({
+          user_id: facility_id,
+          role: "FACILITY",
+          facility_id: facility_id,
+          worker_id: null,
+          email: values.email,
+        });
+
+        // Store the userType
+        await AsyncStorage.setItem("userType", "facility");
+
+        Alert.alert("Success", "Facility registered successfully!", [
+          {
+            text: "OK",
+            onPress: () => router.push("/(tabs)/facility-verification"),
+          },
+        ]);
+      }
+    } catch (error: any) {
+      console.error("FULL ERROR OBJECT:", error);
+      console.error("Error config:", error?.config);
+      console.error("Error code:", error?.code);
+      console.error("Error status:", error?.response?.status);
+      console.error("Error data:", error?.response?.data);
+      console.error("Error message:", error?.message);
+
+      if (error.message && error.message.includes("file upload")) {
+        Alert.alert("Upload Error", "Failed to upload files. Please try again.");
+      } else {
+        let errorMsg = "Registration failed. Please try again.";
+        
+        if (Array.isArray(error?.response?.data?.detail)) {
+          errorMsg = error.response.data.detail
+            .map((err: any) => `${err.loc?.join(".")} - ${err.msg}`)
+            .join("\n");
+        } else if (error?.response?.data?.detail) {
+          errorMsg = error.response.data.detail;
+        } else if (error?.response?.data?.message) {
+          errorMsg = error.response.data.message;
+        } else if (error?.message) {
+          errorMsg = error.message;
+        }
+        
+        Alert.alert("Registration Failed", errorMsg);
+      }
+    }
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>Tell us about your business:</Text>
+    <SafeAreaView style={styles.safeContainer}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Text style={styles.backButton}>‹</Text>
+        </TouchableOpacity>
+        <Image
+          source={require("../../assets/images/MedPost-Icon.png")}
+          style={styles.headerLogo}
+        />
+        <View style={styles.headerSpacer} />
+      </View>
+  <View style={{ flex: 1, backgroundColor: '#fff' }}>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: '#fff' }}
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        contentInsetAdjustmentBehavior="automatic"
+      >
+        <Text style={styles.pageHeader}>Tell us about your business:</Text>
 
       <Formik
         initialValues={{
@@ -92,14 +240,15 @@ export default function FacilityRegister() {
           bio: "",
           profile_image_url: "",
           phone_e164: "",
-          company_size: "",
+          company_size_min: "",
+          company_size_max: "",
           founded_year: "",
-          address_line1: "",
-          address_line2: "",
-          city: "",
-          state_province: "",
-          postal_code: "",
-          country: "",
+          hq_address_line1: "",
+          hq_address_line2: "",
+          hq_city: "",
+          hq_state_province: "",
+          hq_postal_code: "",
+          hq_country: "",
         }}
         validationSchema={facilityValidationSchema}
         onSubmit={handleSubmitForm}
@@ -133,7 +282,7 @@ export default function FacilityRegister() {
                 placeholderTextColor="#aaa"
                 onChangeText={handleChange("legal_name")}
                 onBlur={handleBlur("legal_name")}
-                value={values.legal_name}
+                
               />
             </View>
 
@@ -168,13 +317,11 @@ export default function FacilityRegister() {
                 open={openIndustry}
                 value={values.industry}
                 items={[
-                  { label: "Hospital", value: "Hospital" },
-                  { label: "Senior Care", value: "Senior Care" },
-                  { label: "Home Health", value: "Home Health" },
-                  { label: "Rehab Facility", value: "Rehab Facility" },
-                  { label: "Mental Health", value: "Mental Health" },
-                  { label: "Specialty Clinic", value: "Specialty Clinic" },
-                  { label: "Other", value: "Other" },
+                  { label: "Hospital", value: "HOSPITAL" },
+                  { label: "Home Health", value: "HOME HEALTH" },
+                  { label: "Senior Care", value: "SENIOR CARE" },
+                  { label: "Rehab Center", value: "REHAB CENTER" },
+                  { label: "Other", value: "OTHER" },
                 ]}
                 setOpen={setOpenIndustry}
                 setValue={(callback) =>
@@ -205,14 +352,15 @@ export default function FacilityRegister() {
 
             {[
               { name: "phone_e164", label: "Phone (Optional)" },
-              { name: "company_size", label: "Company Size" },
+              { name: "company_size_min", label: "Company Size (Min)" },
+              { name: "company_size_max", label: "Company Size (Max)" },
               { name: "founded_year", label: "Founded Year" },
-              { name: "address_line1", label: "Address Line 1" },
-              { name: "address_line2", label: "Address Line 2 (Optional)" },
-              { name: "city", label: "City" },
-              { name: "state_province", label: "State/Province" },
-              { name: "postal_code", label: "Postal Code" },
-              { name: "country", label: "Country" },
+              { name: "hq_address_line1", label: "Address Line 1" },
+              { name: "hq_address_line2", label: "Address Line 2 (Optional)" },
+              { name: "hq_city", label: "City" },
+              { name: "hq_state_province", label: "State/Province" },
+              { name: "hq_postal_code", label: "Postal Code" },
+              { name: "hq_country", label: "Country" },
             ].map(({ name, label }) => (
               <View key={name} style={styles.inputContainer}>
                 <Text style={styles.label}>{label}</Text>
@@ -229,23 +377,78 @@ export default function FacilityRegister() {
 
             <TouchableOpacity
               style={styles.submitButton}
-              onPress={handleSubmit}
+              onPress={() => {
+                console.log("Submit button pressed");
+                console.log("Current values:", values);
+                console.log("Form errors:", errors);
+                console.log("Form touched:", touched);
+                
+                // Check for validation errors
+                if (Object.keys(errors).length > 0) {
+                  const errorMessages = Object.entries(errors)
+                    .map(([field, error]) => `${field}: ${error}`)
+                    .join("\n");
+                  Alert.alert("Validation Errors", errorMessages);
+                  return;
+                }
+                
+                handleSubmit();
+              }}
             >
               <Text style={styles.submitText}>Submit</Text>
             </TouchableOpacity>
           </>
         )}
       </Formik>
-    </ScrollView>
+      </ScrollView>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+    backgroundColor: "#00ced1",
+  },
   container: {
     padding: 20,
     backgroundColor: "#fff",
+    flexGrow: 1,
   },
   header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: "#00ced1",
+    borderBottomWidth: 1,
+    borderBottomColor: "#00ced1",
+  },
+  backButton: {
+    fontSize: 28,
+    color: "#fff",
+    fontWeight: "300",
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#2c3e50",
+    flex: 1,
+    textAlign: "center",
+  },
+  headerSpacer: {
+    width: 60,
+  },
+  headerLogo: {
+    width: 60,
+    height: 60,
+    resizeMode: "contain",
+    flex: 1,
+  },
+  pageHeader: {
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 15,

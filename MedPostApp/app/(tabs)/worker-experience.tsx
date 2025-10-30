@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,29 +7,231 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
+  ActivityIndicator,
+  SafeAreaView,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Formik } from "formik";
 import * as yup from "yup";
 import { useRouter } from "expo-router";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_ENDPOINTS } from "../../config/api";
 
 const experienceValidationSchema = yup.object().shape({
   company_name: yup.string().required("Company name is required"),
   position_title: yup.string().required("Position title is required"),
-  start_date: yup.string().required("Start date is required"),
-  end_date: yup.string().required("End date is required"),
+  start_date: yup.string().required("Start date is required").matches(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
+  end_date: yup.string().matches(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format").nullable(),
   description: yup.string().required("Description is required"),
 });
 
+const formatDateDisplay = (dateString: string): string => {
+  if (!dateString) return "";
+  try {
+    const [year, monthRaw] = dateString.split("-");
+    const month = monthRaw.padStart(2, "0").slice(0, 2);
+    const monthIndex = Math.max(0, Math.min(11, parseInt(month, 10) - 1));
+    const monthNames = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ];
+    
+    if (isNaN(monthIndex) || monthIndex < 0 || monthIndex > 11) return `Invalid ${year}`;
+    return `${monthNames[monthIndex]} ${year}`;
+  } catch {
+    return dateString;
+  }
+};
+
 export default function Experience() {
   const router = useRouter();
+  const [workerId, setWorkerId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [experiences, setExperiences] = useState<any[]>([]);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
-  const handleSubmitForm = (values: any) => {
-    Alert.alert("Experience Submitted", JSON.stringify(values, null, 2));
-    router.back();
+  useEffect(() => {
+    const getWorkerInfo = async () => {
+      try {
+        const token = await AsyncStorage.getItem("token");
+        const response = await axios.get(API_ENDPOINTS.WORKER_PROFILE, {
+          headers: token ? {
+            "Authorization": `Bearer ${token}`
+          } : {}
+        });
+        setWorkerId(response.data.id);
+        
+        // Load existing experiences
+        if (response.data.experiences) {
+          setExperiences(response.data.experiences);
+        }
+      } catch (error: any) {
+        Alert.alert("Error", "Could not fetch worker information");
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    getWorkerInfo();
+  }, []);
+
+  const handleExperienceSubmit = async (values: any) => {
+    if (!workerId) {
+      Alert.alert("Error", "Worker ID not found");
+      return;
+    }
+
+    try {
+      const token = await AsyncStorage.getItem("token");
+      
+      const payload = {
+        company_name: values.company_name,
+        position_title: values.position_title,
+        start_date: values.start_date || null,
+        end_date: values.end_date || null,
+        description: values.description,
+      };
+
+      console.log("Submitting payload:", payload);
+
+      const response = await axios.post(
+        `${API_ENDPOINTS.WORKER_PROFILE.replace('/me', '')}/${workerId}/experiences`,
+        payload,
+        {
+          headers: token ? {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          } : {}
+        }
+      );
+      if (response.status === 201 || response.status === 200) {
+        setExperiences([...experiences, response.data]);
+        Alert.alert("Success", "Experience added!");
+        router.replace("/(tabs)/worker-profile");
+      } else {
+        Alert.alert("Error", "Unexpected response from server.");
+      }
+    } catch (error: any) {
+      Alert.alert(
+        "Error",
+        error?.response?.data?.detail || JSON.stringify(error?.response?.data) || "Failed to submit experience."
+      );
+      console.error("Error details:", error?.response?.data);
+    }
   };
 
+  const handleDeleteExperience = async (experienceId: string) => {
+    Alert.alert(
+      "Delete Experience",
+      "Are you sure you want to delete this experience?",
+      [
+        {
+          text: "Cancel",
+          onPress: () => {},
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          onPress: async () => {
+            try {
+              setDeleting(experienceId);
+              const token = await AsyncStorage.getItem("token");
+              await axios.delete(
+                `${API_ENDPOINTS.WORKER_PROFILE.replace('/me', '')}/${workerId}/experiences/${experienceId}`,
+                {
+                  headers: token ? {
+                    "Authorization": `Bearer ${token}`
+                  } : {}
+                }
+              );
+              setExperiences(experiences.filter(exp => exp.id !== experienceId));
+              Alert.alert("Success", "Experience deleted!");
+            } catch (error: any) {
+              Alert.alert("Error", "Failed to delete experience");
+              console.error(error);
+            } finally {
+              setDeleting(null);
+            }
+          },
+          style: "destructive",
+        },
+      ]
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#00ced1" />
+      </View>
+    );
+  }
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <SafeAreaView style={styles.safeContainer}>
+      <View style={styles.header}>
+  <TouchableOpacity onPress={() => router.replace("/(tabs)/worker-profile")}> 
+          <Text style={styles.backButton}>‹</Text>
+        </TouchableOpacity>
+        <Image
+          source={require("../../assets/images/MedPost-Icon.png")}
+          style={styles.headerLogo}
+        />
+        <View style={styles.headerSpacer} />
+      </View>
+      <View style={{ flex: 1, backgroundColor: '#fff' }}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+        >
+          <ScrollView
+            style={{ flex: 1, backgroundColor: '#fff' }}
+            contentContainerStyle={styles.container}
+            keyboardShouldPersistTaps="handled"
+            contentInsetAdjustmentBehavior="automatic"
+          >
+        {/* Existing Experiences Section */}
+        {experiences.length > 0 && (
+        <View>
+          <Text style={styles.headerLabel}>Your Experiences</Text>
+          {experiences.map((exp: any) => (
+            <View key={exp.id} style={styles.experienceCard}>
+              <View style={styles.experienceHeader}>
+                <View style={styles.experienceInfo}>
+                  <Text style={styles.experiencePosition}>{exp.position_title}</Text>
+                  <Text style={styles.experienceCompany}>{exp.company_name}</Text>
+                  <Text style={styles.experienceDate}>
+                    {exp.start_date && formatDateDisplay(exp.start_date)}
+                    {' - '}
+                    {exp.end_date 
+                      ? formatDateDisplay(exp.end_date)
+                      : 'Present'}
+                  </Text>
+                </View>
+                <TouchableOpacity 
+                  onPress={() => handleDeleteExperience(exp.id)}
+                  disabled={deleting === exp.id}
+                >
+                  {deleting === exp.id ? (
+                    <ActivityIndicator size="small" color="#dc3545" />
+                  ) : (
+                    <Text style={styles.deleteButton}>✕</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+              {exp.description && (
+                <Text style={styles.experienceDescription}>{exp.description}</Text>
+              )}
+            </View>
+          ))}
+          <Text style={styles.sectionDivider}>Add More Experience</Text>
+        </View>
+      )}
 
       <Formik
         initialValues={{
@@ -40,7 +242,7 @@ export default function Experience() {
           description: "",
         }}
         validationSchema={experienceValidationSchema}
-        onSubmit={handleSubmitForm}
+        onSubmit={handleExperienceSubmit}
       >
         {({
           handleChange,
@@ -97,7 +299,7 @@ export default function Experience() {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>End Date</Text>
+              <Text style={styles.label}>End Date <Text style={styles.optionalText}>(Optional - leave blank if current)</Text></Text>
               <TextInput
                 style={styles.input}
                 placeholder="YYYY-MM-DD"
@@ -130,23 +332,69 @@ export default function Experience() {
 
             <TouchableOpacity
               style={styles.submitButton}
-              onPress={handleSubmit}
+              onPress={() => handleSubmit()}
             >
               <Text style={styles.submitText}>Submit</Text>
             </TouchableOpacity>
           </>
         )}
       </Formik>
-    </ScrollView>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+    backgroundColor: "#00ced1",
+  },
   container: {
     padding: 20,
     backgroundColor: "#fff",
+    flexGrow: 1,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
   },
   header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: "#00ced1",
+    borderBottomWidth: 1,
+    borderBottomColor: "#00ced1",
+  },
+  backButton: {
+    fontSize: 28,
+    color: "#fff",
+    fontWeight: "300",
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#2c3e50",
+    flex: 1,
+    textAlign: "center",
+  },
+  headerSpacer: {
+    width: 60,
+  },
+  headerLogo: {
+    width: 60,
+    height: 60,
+    resizeMode: "contain",
+    flex: 1,
+  },
+  headerLabel: {
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 15,
@@ -158,6 +406,11 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: "600",
     marginBottom: 5,
+  },
+  optionalText: {
+    fontSize: 12,
+    fontWeight: "400",
+    color: "#999",
   },
   input: {
     height: 45,
@@ -176,6 +429,61 @@ const styles = StyleSheet.create({
     color: "red",
     fontSize: 12,
     marginTop: 3,
+  },
+  experienceCard: {
+    backgroundColor: "#f8f9fa",
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 15,
+    borderLeftWidth: 4,
+    borderLeftColor: "#00ced1",
+  },
+  experienceHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  experienceInfo: {
+    flex: 1,
+  },
+  experiencePosition: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#2c3e50",
+    marginBottom: 4,
+  },
+  experienceCompany: {
+    fontSize: 14,
+    color: "#00ced1",
+    marginBottom: 4,
+    fontWeight: "500",
+  },
+  experienceDate: {
+    fontSize: 12,
+    color: "#999",
+    marginBottom: 8,
+  },
+  experienceDescription: {
+    fontSize: 13,
+    color: "#666",
+    lineHeight: 18,
+    marginTop: 8,
+  },
+  deleteButton: {
+    fontSize: 24,
+    color: "#dc3545",
+    fontWeight: "bold",
+    padding: 8,
+  },
+  sectionDivider: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#2c3e50",
+    marginVertical: 20,
+    textAlign: "center",
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
   },
   submitButton: {
     backgroundColor: "#00ced1",

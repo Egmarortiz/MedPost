@@ -8,11 +8,14 @@ import {
   StyleSheet,
   Switch,
   Alert,
+  SafeAreaView,
+  Image,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import { Formik } from "formik";
 import * as yup from "yup";
 import { useRouter } from "expo-router";
+import axios from "axios";
 
 const credentialSchema = yup.object().shape({
   credential_type_id: yup
@@ -33,6 +36,26 @@ const credentialSchema = yup.object().shape({
 export default function WorkerCredential() {
   const router = useRouter();
   const [verified, setVerified] = useState(false);
+
+  const handleCredentialsSubmit = async (values: any) => {
+    try {
+      const response = await axios.post(
+        "http://127.0.0.1:8000/api/workers/credentials",
+        values
+      );
+      if (response.status === 201 || response.status === 200) {
+        Alert.alert("Success", "Credentials submitted!");
+        router.push("/");
+      } else {
+        Alert.alert("Error", "Unexpected response from server.");
+      }
+    } catch (error: any) {
+      Alert.alert(
+        "Error",
+        error?.response?.data?.detail || "Failed to submit credentials."
+      );
+    }
+  };
 
   const handleSubmitForm = (values: any) => {
     const data = {
@@ -59,8 +82,20 @@ export default function WorkerCredential() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>Add Credential</Text>
+    <SafeAreaView style={styles.safeContainer}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Text style={styles.backButton}>‹</Text>
+        </TouchableOpacity>
+        <Image
+          source={require("../../assets/images/MedPost-Icon.png")}
+          style={styles.headerLogo}
+        />
+        <View style={styles.headerSpacer} />
+      </View>
+  <View style={{ flex: 1, backgroundColor: '#fff' }}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.headerLabel}>Add Credential</Text>
 
       <Formik
         initialValues={{
@@ -70,7 +105,7 @@ export default function WorkerCredential() {
           evidence_url: "",
         }}
         validationSchema={credentialSchema}
-        onSubmit={handleSubmitForm}
+        onSubmit={handleCredentialsSubmit}
       >
         {({
           handleChange,
@@ -166,16 +201,54 @@ export default function WorkerCredential() {
           </>
         )}
       </Formik>
-    </ScrollView>
+      </ScrollView>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+    backgroundColor: "#00ced1",
+  },
   container: {
     padding: 20,
     backgroundColor: "#fff",
   },
   header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: "#00ced1",
+    borderBottomWidth: 1,
+    borderBottomColor: "#00ced1",
+  },
+  backButton: {
+    fontSize: 28,
+    color: "#fff",
+    fontWeight: "300",
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#2c3e50",
+    flex: 1,
+    textAlign: "center",
+  },
+  headerSpacer: {
+    width: 60,
+  },
+  headerLogo: {
+    width: 60,
+    height: 60,
+    resizeMode: "contain",
+    flex: 1,
+  },
+  headerLabel: {
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 15,

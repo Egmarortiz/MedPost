@@ -1,8 +1,13 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Image, Alert, ScrollView, ActivityIndicator, StyleSheet} from "react-native";
+import { View, Text, TouchableOpacity, Image, Alert, ScrollView, ActivityIndicator, StyleSheet, SafeAreaView} from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_ENDPOINTS, API_BASE_URL } from "../../config/api";
 
 export default function IdentityVerificationScreen() {
+  const router = useRouter();
   const [selfie, setSelfie] = useState<string | null>(null);
   const [idPhoto, setIdPhoto] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ selfie?: string; idPhoto?: string }>({});
@@ -23,7 +28,7 @@ export default function IdentityVerificationScreen() {
     if (!granted) return;
 
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -33,6 +38,41 @@ export default function IdentityVerificationScreen() {
       const uri = result.assets[0]?.uri;
       if (uri) setter(uri);
       else setErrors((prev) => ({ ...prev, [field]: "Could not read image. Try again." }));
+    }
+  };
+
+  const uploadImage = async (imageUri: string): Promise<string> => {
+    try {
+      const formData = new FormData();
+      const filename = imageUri.split('/').pop() || 'image.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
+      
+      formData.append('file', {
+        uri: imageUri,
+        name: filename,
+        type: type,
+      } as any);
+
+      console.log('Uploading verification image...');
+      
+      const response = await axios.post(API_ENDPOINTS.UPLOAD_IMAGE, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      console.log('Image upload response:', response.data);
+      
+      const relativeUrl = response.data.url;
+      const absoluteUrl = relativeUrl.startsWith('http') 
+        ? relativeUrl 
+        : `${API_BASE_URL}${relativeUrl}`;
+      
+      return absoluteUrl;
+    } catch (error: any) {
+      console.error('Image upload error:', error?.response?.data || error.message);
+      throw new Error('Failed to upload image');
     }
   };
 
@@ -47,29 +87,85 @@ export default function IdentityVerificationScreen() {
     try {
       setSubmitting(true);
 
-      const formData = new FormData();
-      formData.append("selfie", {
-        uri: selfie!,
-        name: "selfie.jpg",
-        type: "image/jpeg",
-      } as any);
-      formData.append("idPhoto", {
-        uri: idPhoto!,
-        name: "id.jpg",
-        type: "image/jpeg",
-      } as any);
+      const userJson = await AsyncStorage.getItem("user");
+      console.log("Retrieved user from storage:", userJson);
+      
+      if (!userJson) {
+        console.error("No user found in AsyncStorage!");
+        Alert.alert("Error", "User data not found. Please register first.");
+        router.push("/(tabs)/worker-register");
+        return;
+      }
 
-      const res = await fetch("http://127.0.0.1:8000/{worker_id}/", {
-        method: "POST",
-        body: formData,
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const user = JSON.parse(userJson);
+      const workerId = user.worker_id;
+      console.log("Extracted worker_id:", workerId);
+      
+      if (!workerId) {
+        console.error("No worker_id found in user object!");
+        Alert.alert("Error", "Worker ID not found. Please register first.");
+        router.push("/(tabs)/worker-register");
+        return;
+      }
 
-      if (!res.ok) throw new Error("Failed to submit verification");
+      // Upload images first
+      console.log("Uploading selfie...");
+      const selfieUrl = await uploadImage(selfie!);
+      console.log("Selfie uploaded:", selfieUrl);
 
-      Alert.alert("Submitted", "Your identity verification has been sent to MedPost.");
-    } catch (err) {
-      Alert.alert("Error", "Could not submit verification. Please try again.");
+      console.log("Uploading ID photo...");
+      const idPhotoUrl = await uploadImage(idPhoto!);
+      console.log("ID photo uploaded:", idPhotoUrl);
+
+      // Prepare verification data with uploaded URLs
+      const verificationData = {
+        worker_id: workerId,
+        selfie_url: selfieUrl,
+        id_photo_url: idPhotoUrl,
+        submitted_at: new Date().toISOString(),
+      };
+
+      console.log("Sending verification data:", verificationData);
+
+     
+      const response = await axios.post(
+        API_ENDPOINTS.WORKER_VERIFY,
+        verificationData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log("Verification response:", response.data);
+
+      if (response.status === 200 || response.status === 201) {
+        Alert.alert(
+          "Verification Submitted!",
+          "Your identity verification has been sent to MedPost. You will receive an email confirmation shortly.",
+          [
+            {
+              text: "OK",
+              onPress: () => router.push("/(tabs)/worker-profile"),
+            },
+          ]
+        );
+      } else {
+        Alert.alert("Error", "Unexpected response from server.");
+      }
+    } catch (error: any) {
+      console.error("Verification error:", error?.response?.data || error.message || error);
+      
+      let errorMessage = "Could not submit verification. Please try again.";
+      
+      if (error.message && error.message.includes("Failed to upload")) {
+        errorMessage = "Failed to upload images. Please check your connection and try again.";
+      } else if (error?.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      }
+      
+      Alert.alert("Submission Failed", errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -78,8 +174,20 @@ export default function IdentityVerificationScreen() {
   const submitDisabled = !selfie || !idPhoto || submitting;
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>Please verify your identity:</Text>
+    <SafeAreaView style={styles.safeContainer}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Text style={styles.backButton}>‹</Text>
+        </TouchableOpacity>
+        <Image
+          source={require("../../assets/images/MedPost-Icon.png")}
+          style={styles.headerLogo}
+        />
+        <View style={styles.headerSpacer} />
+      </View>
+  <View style={{ flex: 1, backgroundColor: '#fff' }}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.headerLabel}>Please verify your identity:</Text>
 
       <View style={styles.imageContainer}>
         {selfie ? (
@@ -122,11 +230,17 @@ export default function IdentityVerificationScreen() {
           <Text style={styles.submitText}>Submit</Text>
         )}
       </TouchableOpacity>
-    </ScrollView>
+      </ScrollView>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+    backgroundColor: "#00ced1",
+  },
   container: {
     flexGrow: 1,
     padding: 20,
@@ -134,6 +248,38 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
   },
   header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: "#00ced1",
+    borderBottomWidth: 1,
+    borderBottomColor: "#00ced1",
+  },
+  backButton: {
+    fontSize: 28,
+    color: "#fff",
+    fontWeight: "300",
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#2c3e50",
+    flex: 1,
+    textAlign: "center",
+  },
+  headerSpacer: {
+    width: 60,
+  },
+  headerLogo: {
+    width: 60,
+    height: 60,
+    resizeMode: "contain",
+    flex: 1,
+  },
+  headerLabel: {
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 15,
@@ -145,7 +291,7 @@ const styles = StyleSheet.create({
   },
   imagePreview: {
     width: 120,
-    height: 165,
+    height: 180,
     borderRadius: 1,
     marginBottom: 10,
   },
