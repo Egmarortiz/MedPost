@@ -127,35 +127,51 @@ export default function IdentityVerificationScreen() {
 
       console.log("Sending verification data:", verificationData);
 
-     
+      // Get authentication token
+      const token = await AsyncStorage.getItem("token");
+      console.log("Retrieved token:", token ? "present" : "missing");
+      
+      if (!token) {
+        Alert.alert("Error", "Authentication required. Please log in again.");
+        router.push("/(tabs)/login");
+        return;
+      }
+
       const response = await axios.post(
         API_ENDPOINTS.WORKER_VERIFY,
         verificationData,
         {
           headers: {
             "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
           },
         }
       );
 
       console.log("Verification response:", response.data);
+      console.log("Response status:", response.status);
+      console.log("Response status type:", typeof response.status);
 
       if (response.status === 200 || response.status === 201) {
-        Alert.alert(
-          "Verification Submitted!",
-          "Your identity verification has been sent to MedPost. You will receive an email confirmation shortly.",
-          [
-            {
-              text: "OK",
-              onPress: () => router.push("/(tabs)/worker-profile"),
-            },
-          ]
-        );
+        console.log("SUCCESS CONDITION MET - About to navigate to profile...");
+        console.log("Router object:", typeof router);
+        console.log("Router.replace method:", typeof router.replace);
+        
+        try {
+          router.replace("/(tabs)/worker-profile");
+          console.log("Navigation called successfully");
+        } catch (navError) {
+          console.error("Navigation failed with error:", navError);
+          Alert.alert("Navigation Error", "Failed to navigate to profile page");
+        }
       } else {
-        Alert.alert("Error", "Unexpected response from server.");
+        console.log("UNEXPECTED RESPONSE STATUS:", response.status);
+        Alert.alert("Error", `Unexpected response: ${response.status}`);
       }
     } catch (error: any) {
       console.error("Verification error:", error?.response?.data || error.message || error);
+      console.error("Error status:", error?.response?.status);
+      console.error("Error details:", error);
       
       let errorMessage = "Could not submit verification. Please try again.";
       
@@ -163,6 +179,10 @@ export default function IdentityVerificationScreen() {
         errorMessage = "Failed to upload images. Please check your connection and try again.";
       } else if (error?.response?.data?.detail) {
         errorMessage = error.response.data.detail;
+      } else if (error?.response?.status === 401) {
+        errorMessage = "Authentication failed. Please log in again.";
+      } else if (error?.response?.status === 403) {
+        errorMessage = "You don't have permission to submit verification.";
       }
       
       Alert.alert("Submission Failed", errorMessage);

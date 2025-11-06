@@ -9,6 +9,7 @@ import {
   Image,
   Alert,
   Platform,
+  KeyboardAvoidingView,
   SafeAreaView,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -109,7 +110,7 @@ const workerValidationSchema = yup.object().shape({
   phone: yup.string().nullable(),
   password: yup
     .string()
-    .min(6, "Password must be at least 6 characters")
+    .min(8, "Password must be at least 8 characters")
     .required("Password is required"),
   title: yup.string().required("Career title is required"),
   bio: yup.string().nullable(),
@@ -260,32 +261,34 @@ export default function WorkerRegister() {
       console.log("Registration response:", response.data);
 
       if (response.status === 201 || response.status === 200) {
-        const { access_token, refresh_token, worker_id } = response.data;
+        const { access_token, refresh_token, worker_id, user_id } =
+          response.data;
 
         console.log("Extracted data:", {
           access_token,
           refresh_token,
           worker_id,
+          user_id,
         });
 
         await saveToken(access_token);
         console.log("Token saved successfully");
-        
+
         const userData = {
-          user_id: worker_id,
+          user_id: user_id,
           role: "WORKER",
           worker_id: worker_id,
           facility_id: null,
           email: values.email,
         };
-        
+
         console.log("Saving user data:", userData);
         await saveUser(userData);
         console.log("User data saved successfully");
-        
+
         // Store the userType
         await AsyncStorage.setItem("userType", "worker");
-        
+
         // Verify it was saved
         const savedUser = await AsyncStorage.getItem("user");
         console.log("Verified saved user:", savedUser);
@@ -333,257 +336,275 @@ export default function WorkerRegister() {
   };
 
   return (
-    <SafeAreaView style={styles.safeContainer}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backButton}>‹</Text>
-        </TouchableOpacity>
-        <Image
-          source={require("../../assets/images/MedPost-Icon.png")}
-          style={styles.headerLogo}
-        />
-        <View style={styles.headerSpacer} />
-      </View>
-  <View style={{ flex: 1, backgroundColor: '#fff' }}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.pageHeader}>Tell us about yourself:</Text>
-        <Formik
-          initialValues={{
-            full_name: "",
-            email: "",
-            phone: "",
-            password: "",
-            title: "",
-            bio: "",
-            profile_image_url: "",
-            resume_url: "",
-            city: "",
-            postal_code: "",
-            education_level: "",
-          }}
-          validationSchema={workerValidationSchema}
-          onSubmit={handleSubmitForm}
-        >
-          {({
-            handleChange,
-            handleBlur,
-            handleSubmit,
-            setFieldValue,
-            values,
-            errors,
-            touched,
-          }) => (
-            <>
-              <View style={styles.imageContainer}>
-                {image ? (
-                  <Image source={{ uri: image }} style={styles.imagePreview} />
-                ) : (
-                  <Text style={styles.imagePlaceholder}>No Profile Image</Text>
-                )}
-                <TouchableOpacity
-                  style={styles.uploadButton}
-                  onPress={pickImage}
-                >
-                  <Text style={styles.uploadText}>Upload Profile Image</Text>
-                </TouchableOpacity>
-              </View>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1 }}
+    >
+      <SafeAreaView style={styles.safeContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={styles.backButton}>‹</Text>
+          </TouchableOpacity>
+          <Image
+            source={require("../../assets/images/MedPost-Icon.png")}
+            style={styles.headerLogo}
+          />
+          <View style={styles.headerSpacer} />
+        </View>
+        <View style={{ flex: 1, backgroundColor: "#fff" }}>
+          <ScrollView contentContainerStyle={styles.container}>
+            <Text style={styles.pageHeader}>Tell us about yourself:</Text>
+            <Formik
+              initialValues={{
+                full_name: "",
+                email: "",
+                phone: "",
+                password: "",
+                title: "",
+                bio: "",
+                profile_image_url: "",
+                resume_url: "",
+                city: "",
+                postal_code: "",
+                education_level: "",
+              }}
+              validationSchema={workerValidationSchema}
+              onSubmit={handleSubmitForm}
+            >
+              {({
+                handleChange,
+                handleBlur,
+                handleSubmit,
+                setFieldValue,
+                values,
+                errors,
+                touched,
+              }) => (
+                <>
+                  <View style={styles.imageContainer}>
+                    {image ? (
+                      <Image
+                        source={{ uri: image }}
+                        style={styles.imagePreview}
+                      />
+                    ) : (
+                      <Text style={styles.imagePlaceholder}>
+                        No Profile Image
+                      </Text>
+                    )}
+                    <TouchableOpacity
+                      style={styles.uploadButton}
+                      onPress={pickImage}
+                    >
+                      <Text style={styles.uploadText}>
+                        Upload Profile Image
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
 
-              <View style={styles.documentContainer}>
-                <Text style={styles.documentPlaceholder}>
-                  {resume ? "Resume uploaded" : "No Resume Selected"}
-                </Text>
-                <TouchableOpacity
-                  style={styles.uploadButton}
-                  onPress={pickResume}
-                >
-                  <Text style={styles.uploadText}>Upload Resume (PDF)</Text>
-                </TouchableOpacity>
-              </View>
+                  <View style={styles.documentContainer}>
+                    <Text style={styles.documentPlaceholder}>
+                      {resume ? "Resume uploaded" : "No Resume Selected"}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.uploadButton}
+                      onPress={pickResume}
+                    >
+                      <Text style={styles.uploadText}>Upload Resume (PDF)</Text>
+                    </TouchableOpacity>
+                  </View>
 
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Full Name</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your full name"
-                  placeholderTextColor="#aaa"
-                  onChangeText={handleChange("full_name")}
-                  onBlur={handleBlur("full_name")}
-                  value={values.full_name}
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Email</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your email"
-                  placeholderTextColor="#aaa"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  onChangeText={handleChange("email")}
-                  onBlur={handleBlur("email")}
-                  value={values.email}
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Phone (Optional)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your phone number"
-                  placeholderTextColor="#aaa"
-                  keyboardType="phone-pad"
-                  onChangeText={handleChange("phone")}
-                  onBlur={handleBlur("phone")}
-                  value={values.phone}
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Password</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your password"
-                  placeholderTextColor="#aaa"
-                  secureTextEntry
-                  autoCapitalize="none"
-                  onChangeText={handleChange("password")}
-                  onBlur={handleBlur("password")}
-                  value={values.password}
-                />
-              </View>
-
-              <View style={[styles.inputContainer, { zIndex: 3000 }]}>
-                <Text style={styles.label}>Career Title</Text>
-                <DropDownPicker
-                  open={openTitle}
-                  value={values.title}
-                  items={[
-                    {
-                      label: "Registered Nurse (RN)",
-                      value: "REGISTERED NURSE",
-                    },
-                    {
-                      label: "Licensed Practical Nurse (LPN)",
-                      value: "LICENSED PRACTICAL NURSE",
-                    },
-                    {
-                      label: "Certified Nursing Assistant (CNA)",
-                      value: "CERTIFIED NURSING ASSISTANT",
-                    },
-                    { label: "Caregiver", value: "CAREGIVER" },
-                    { label: "Support Staff", value: "SUPPORT STAFF" },
-                  ]}
-                  setOpen={setOpenTitle}
-                  setValue={(callback) =>
-                    setFieldValue("title", callback(values.title))
-                  }
-                  style={styles.dropdown}
-                  dropDownContainerStyle={styles.dropdownContainer}
-                  placeholder="Select Title"
-                  listMode="MODAL"
-                />
-              </View>
-
-              <View style={[styles.inputContainer, { zIndex: 2000 }]}>
-                <Text style={styles.label}>Education Level</Text>
-                <DropDownPicker
-                  open={openEducation}
-                  value={values.education_level}
-                  items={[
-                    { label: "High School", value: "HIGH SCHOOL" },
-                    {
-                      label: "Associate's Degree",
-                      value: "ASSOCIATE'S DEGREE",
-                    },
-                    { label: "Bachelor's Degree", value: "BACHELOR'S DEGREE" },
-                    { label: "Master's Degree", value: "MASTER'S DEGREE" },
-                    { label: "Doctorate", value: "DOCTORATE" },
-                  ]}
-                  setOpen={setOpenEducation}
-                  setValue={(callback) =>
-                    setFieldValue(
-                      "education_level",
-                      callback(values.education_level)
-                    )
-                  }
-                  style={styles.dropdown}
-                  dropDownContainerStyle={styles.dropdownContainer}
-                  placeholder="Select Education Level"
-                  listMode="MODAL"
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Bio</Text>
-                <TextInput
-                  style={[
-                    styles.input,
-                    { height: 100, textAlignVertical: "top" },
-                  ]}
-                  placeholder="Tell us about yourself..."
-                  placeholderTextColor="#aaa"
-                  multiline
-                  onChangeText={handleChange("bio")}
-                  onBlur={handleBlur("bio")}
-                  value={values.bio}
-                />
-              </View>
-
-              {/* City Dropdown */}
-              <View style={[styles.inputContainer, { zIndex: 3000 }]}>
-                <Text style={styles.label}>Municipality</Text>
-                <DropDownPicker
-                  open={openCity}
-                  value={values.city}
-                  items={PUERTO_RICO_MUNICIPALITIES.map((municipality) => ({
-                    label: municipality,
-                    value: municipality,
-                  }))}
-                  setOpen={setOpenCity}
-                  setValue={(callback) =>
-                    setFieldValue("city", callback(values.city))
-                  }
-                  style={styles.dropdown}
-                  dropDownContainerStyle={styles.dropdownContainer}
-                  placeholder="Select Municipality"
-                  listMode="MODAL"
-                  searchable={true}
-                  searchPlaceholder="Search municipalities..."
-                />
-              </View>
-
-              {([{ name: "postal_code", label: "Postal Code" }] as const).map(
-                ({ name, label }) => (
-                  <View key={name} style={styles.inputContainer}>
-                    <Text style={styles.label}>{label}</Text>
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.label}>Full Name</Text>
                     <TextInput
                       style={styles.input}
-                      placeholder={label}
+                      placeholder="Enter your full name"
                       placeholderTextColor="#aaa"
-                      onChangeText={handleChange(name)}
-                      onBlur={handleBlur(name)}
-                      value={values[name as keyof typeof values] as string}
+                      onChangeText={handleChange("full_name")}
+                      onBlur={handleBlur("full_name")}
+                      value={values.full_name}
                     />
                   </View>
-                )
-              )}
 
-              <TouchableOpacity
-                style={styles.submitButton}
-                onPress={() => {
-                  console.log("=== SUBMIT BUTTON CLICKED ===");
-                  handleSubmit();
-                }}
-              >
-                <Text style={styles.submitText}>Submit</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </Formik>
-      </ScrollView>
-      </View>
-    </SafeAreaView>
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.label}>Email</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter your email"
+                      placeholderTextColor="#aaa"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      onChangeText={handleChange("email")}
+                      onBlur={handleBlur("email")}
+                      value={values.email}
+                    />
+                  </View>
+
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.label}>Password</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter your password"
+                      placeholderTextColor="#aaa"
+                      secureTextEntry
+                      autoCapitalize="none"
+                      onChangeText={handleChange("password")}
+                      onBlur={handleBlur("password")}
+                      value={values.password}
+                    />
+                    {touched.password && errors.password ? (
+                      <Text style={styles.errorText}>{errors.password}</Text>
+                    ) : null}
+                  </View>
+
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.label}>Career Title</Text>
+                    <DropDownPicker
+                      open={openTitle}
+                      value={values.title}
+                      items={[
+                        {
+                          label: "Registered Nurse (RN)",
+                          value: "REGISTERED NURSE",
+                        },
+                        {
+                          label: "Licensed Practical Nurse (LPN)",
+                          value: "LICENSED PRACTICAL NURSE",
+                        },
+                        {
+                          label: "Certified Nursing Assistant (CNA)",
+                          value: "CERTIFIED NURSING ASSISTANT",
+                        },
+                        { label: "Caregiver", value: "CAREGIVER" },
+                        { label: "Support Staff", value: "SUPPORT STAFF" },
+                      ]}
+                      setOpen={setOpenTitle}
+                      setValue={(callback) =>
+                        setFieldValue("title", callback(values.title))
+                      }
+                      style={styles.dropdown}
+                      dropDownContainerStyle={styles.dropdownContainer}
+                      placeholder="Select Title"
+                      listMode="MODAL"
+                    />
+                  </View>
+
+                  <View style={[styles.inputContainer, { zIndex: 2000 }]}>
+                    <Text style={styles.label}>Education Level</Text>
+                    <DropDownPicker
+                      open={openEducation}
+                      value={values.education_level}
+                      items={[
+                        { label: "High School", value: "HIGH SCHOOL" },
+                        {
+                          label: "Associate's Degree",
+                          value: "ASSOCIATE'S DEGREE",
+                        },
+                        {
+                          label: "Bachelor's Degree",
+                          value: "BACHELOR'S DEGREE",
+                        },
+                        { label: "Master's Degree", value: "MASTER'S DEGREE" },
+                        { label: "Doctorate", value: "DOCTORATE" },
+                      ]}
+                      setOpen={setOpenEducation}
+                      setValue={(callback) =>
+                        setFieldValue(
+                          "education_level",
+                          callback(values.education_level)
+                        )
+                      }
+                      style={styles.dropdown}
+                      dropDownContainerStyle={styles.dropdownContainer}
+                      placeholder="Select Education Level"
+                      listMode="MODAL"
+                    />
+                  </View>
+
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.label}>Bio</Text>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        { height: 100, textAlignVertical: "top" },
+                      ]}
+                      placeholder="Tell us about yourself..."
+                      placeholderTextColor="#aaa"
+                      multiline
+                      onChangeText={handleChange("bio")}
+                      onBlur={handleBlur("bio")}
+                      value={values.bio}
+                    />
+                  </View>
+
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.label}>Phone (Optional)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter your phone number"
+                      placeholderTextColor="#aaa"
+                      keyboardType="phone-pad"
+                      onChangeText={handleChange("phone")}
+                      onBlur={handleBlur("phone")}
+                      value={values.phone}
+                    />
+                  </View>
+
+                  {/* City Dropdown */}
+                  <View style={[styles.inputContainer, { zIndex: 3000 }]}>
+                    <Text style={styles.label}>Municipality</Text>
+                    <DropDownPicker
+                      open={openCity}
+                      value={values.city}
+                      items={PUERTO_RICO_MUNICIPALITIES.map((municipality) => ({
+                        label: municipality,
+                        value: municipality,
+                      }))}
+                      setOpen={setOpenCity}
+                      setValue={(callback) =>
+                        setFieldValue("city", callback(values.city))
+                      }
+                      style={styles.dropdown}
+                      dropDownContainerStyle={styles.dropdownContainer}
+                      placeholder="Select Municipality"
+                      listMode="MODAL"
+                      searchable={true}
+                      searchPlaceholder="Search municipalities..."
+                    />
+                  </View>
+
+                  {(
+                    [{ name: "postal_code", label: "Postal Code" }] as const
+                  ).map(({ name, label }) => (
+                    <View key={name} style={styles.inputContainer}>
+                      <Text style={styles.label}>{label}</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder={label}
+                        placeholderTextColor="#aaa"
+                        onChangeText={handleChange(name)}
+                        onBlur={handleBlur(name)}
+                        value={values[name as keyof typeof values] as string}
+                      />
+                    </View>
+                  ))}
+
+                  <TouchableOpacity
+                    style={styles.submitButton}
+                    onPress={() => {
+                      console.log("=== SUBMIT BUTTON CLICKED ===");
+                      handleSubmit();
+                    }}
+                  >
+                    <Text style={styles.submitText}>Submit</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </Formik>
+          </ScrollView>
+        </View>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -631,6 +652,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 15,
     textAlign: "center",
+    color: "#2c3e50",
   },
   imageContainer: { alignItems: "center", marginBottom: 20 },
   imagePreview: { width: 120, height: 120, borderRadius: 60, marginBottom: 10 },
@@ -644,7 +666,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   uploadText: { color: "#fff", fontWeight: "bold" },
-  label: { fontSize: 14, fontWeight: "600", marginBottom: 5 },
+  label: { fontSize: 14, fontWeight: "600", marginBottom: 5, color: "#2c3e50" },
   inputContainer: { marginBottom: 15 },
   input: {
     backgroundColor: "#fff",
@@ -674,4 +696,10 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   submitText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  errorText: {
+    color: "#dc3545",
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: "500",
+  },
 });

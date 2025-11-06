@@ -3,6 +3,7 @@ import {
   View,
   Text,
   ScrollView,
+  FlatList,
   TouchableOpacity,
   StyleSheet,
   Image,
@@ -11,7 +12,7 @@ import {
   SafeAreaView,
 } from "react-native";
 import axios from "axios";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import BottomTab from "../../components/BottomTab";
 import { API_ENDPOINTS, API_BASE_URL } from "../../config/api";
@@ -37,6 +38,9 @@ function WorkerCard({
       <View style={styles.cardContent}>
         <Text style={styles.cardTitle}>{worker.full_name}</Text>
         <Text style={styles.cardSub}>{worker.title || "Healthcare Professional"}</Text>
+        {(worker.city || worker.state_province) && (
+          <Text style={styles.cardLocation}>{worker.city}{worker.state_province ? `, ${worker.state_province}` : ""}</Text>
+        )}
         {worker.bio && (
           <Text style={styles.cardBio} numberOfLines={2}>{worker.bio}</Text>
         )}
@@ -67,6 +71,9 @@ function FacilityCard({
       <View style={styles.cardContent}>
         <Text style={styles.cardTitle}>{facility.legal_name}</Text>
         <Text style={styles.cardSub}>{facility.industry || "Healthcare"}</Text>
+        {(facility.hq_city || facility.hq_state_province) && (
+          <Text style={styles.cardLocation}>{facility.hq_city}{facility.hq_state_province ? `, ${facility.hq_state_province}` : ""}</Text>
+        )}
         {facility.bio && (
           <Text style={styles.cardBio} numberOfLines={2}>{facility.bio}</Text>
         )}
@@ -85,14 +92,14 @@ export default function WorkerHomePage() {
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userType, setUserType] = useState<"worker" | "facility" | null>(null);
-  const [selectedFacility, setSelectedFacility] = useState<any>(null);
-  const [selectedWorker, setSelectedWorker] = useState<any>(null);
+  const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
   const router = useRouter();
 
   useEffect(() => {
     const fetchData = async () => {
       let facilitiesData: any[] = [];
       let workersData: any[] = [];
+      let jobsData: any[] = [];
       
       try {
         const token = await AsyncStorage.getItem("token");
@@ -107,53 +114,72 @@ export default function WorkerHomePage() {
 
         // Fetch current user profile to get their ID
         let currentId = null;
-        if (userTypeStr === "worker") {
-          const workerRes = await axios.get(API_ENDPOINTS.WORKER_PROFILE, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          currentId = workerRes.data.id;
-        } else if (userTypeStr === "facility") {
-          const facilityRes = await axios.get(API_ENDPOINTS.FACILITY_PROFILE, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          currentId = facilityRes.data.id;
+        try {
+          if (userTypeStr === "worker") {
+            const workerRes = await axios.get(API_ENDPOINTS.WORKER_PROFILE, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            currentId = workerRes.data.id;
+            console.log("Current worker ID:", currentId);
+          } else if (userTypeStr === "facility") {
+            const facilityRes = await axios.get(API_ENDPOINTS.FACILITY_PROFILE, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            currentId = facilityRes.data.id;
+            console.log("Current facility ID:", currentId);
+          }
+        } catch (error: any) {
+          console.error("Error fetching current user:", error.message);
         }
 
         setCurrentUserId(currentId);
 
-        // Fetch jobs (required)
-        const jobsRes = await axios.get(API_ENDPOINTS.JOBS_LIST, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        // Fetch facilities with error handling
+        // Fetch jobs
         try {
-          console.log("Fetching facilities from:", `${API_BASE_URL}/v1/facilities`);
-          const facilitiesRes = await axios.get(`${API_BASE_URL}/v1/facilities`, {
+          console.log("Fetching jobs from:", API_ENDPOINTS.JOBS_LIST);
+          const jobsRes = await axios.get(API_ENDPOINTS.JOBS_LIST, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          console.log("Jobs response:", jobsRes.data);
+          jobsData = Array.isArray(jobsRes.data) ? jobsRes.data : (jobsRes.data.items || []);
+          console.log("Jobs fetched:", jobsData.length);
+        } catch (error: any) {
+          console.warn("Could not fetch jobs:", error.response?.status, error.message);
+          jobsData = [];
+        }
+
+        // Fetch facilities
+        try {
+          console.log("Fetching facilities from:", API_ENDPOINTS.FACILITIES_LIST);
+          const facilitiesRes = await axios.get(API_ENDPOINTS.FACILITIES_LIST, {
             headers: { Authorization: `Bearer ${token}` },
           });
           console.log("Facilities response:", facilitiesRes.data);
-          // Response is paginated
-          facilitiesData = facilitiesRes.data.items || [];
+          facilitiesData = Array.isArray(facilitiesRes.data) ? facilitiesRes.data : (facilitiesRes.data.items || []);
+          console.log("Facilities fetched:", facilitiesData.length);
         } catch (error: any) {
           console.warn("Could not fetch facilities:", error.response?.status, error.message);
+          facilitiesData = [];
         }
 
-        // Fetch workers with error handling
+        // Fetch workers
         try {
-          console.log("Fetching workers from:", `${API_BASE_URL}/v1/workers`);
-          const workersRes = await axios.get(`${API_BASE_URL}/v1/workers`, {
+          console.log("Fetching workers from:", API_ENDPOINTS.WORKERS_LIST);
+          const workersRes = await axios.get(API_ENDPOINTS.WORKERS_LIST, {
             headers: { Authorization: `Bearer ${token}` },
           });
           console.log("Workers response:", workersRes.data);
-          // Response is paginated: { items: [...], total, limit, offset }
-          workersData = workersRes.data.items || [];
+          workersData = Array.isArray(workersRes.data) ? workersRes.data : (workersRes.data.items || []);
+          console.log("Workers fetched:", workersData.length);
         } catch (error: any) {
-          console.warn("Could not fetch workers:", error.response?.status, error.message);
+          console.error("Error fetching workers - Status:", error.response?.status, "Message:", error.message);
+          console.error("Full error response:", error.response?.data);
+          console.error("Full error object:", error);
+          workersData = [];
         }
 
-        // Filter out current user's items
-        const filteredJobs = jobsRes.data.filter(
+        // Filter out current users items
+        const filteredJobs = jobsData.filter(
           (job: any) => job.facility_id !== currentId && job.worker_id !== currentId
         );
         
@@ -165,9 +191,29 @@ export default function WorkerHomePage() {
           (worker: any) => worker.id !== currentId
         );
 
+        console.log("Current user ID:", currentId);
+        console.log("Total jobs fetched:", jobsData.length, "-> Filtered:", filteredJobs.length);
+        console.log("Total facilities fetched:", facilitiesData.length, "-> Filtered:", filteredFacilities.length);
+        console.log("Total workers fetched:", workersData.length, "-> Filtered:", filteredWorkers.length);
+
         setJobs(filteredJobs);
         setFacilities(filteredFacilities);
         setWorkers(filteredWorkers);
+
+        // Fetch workers applications if user is a worker
+        if (userTypeStr === "worker") {
+          try {
+            const applicationsRes = await axios.get(API_ENDPOINTS.JOB_APPLICATIONS_WORKER, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const applications = Array.isArray(applicationsRes.data) ? applicationsRes.data : [];
+            const appliedIds = new Set(applications.map((app: any) => app.job_post_id));
+            setAppliedJobIds(appliedIds);
+            console.log("Worker applied to jobs:", Array.from(appliedIds));
+          } catch (error: any) {
+            console.warn("Could not fetch worker applications:", error.response?.status, error.message);
+          }
+        }
       } catch (error: any) {
         console.error("Error fetching data:", error);
         Alert.alert("Error", "Unable to load data: " + error.message);
@@ -177,6 +223,91 @@ export default function WorkerHomePage() {
     };
     fetchData();
   }, []);
+
+  // Refresh data when page comes into focus, to show updated job status
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log("Worker home page focused - refreshing data");
+      const token = AsyncStorage.getItem("token");
+      token.then((t) => {
+        if (t) {
+          setLoading(true);
+          let facilitiesData: any[] = [];
+          let workersData: any[] = [];
+          let jobsData: any[] = [];
+          let currentId: any = null;
+          
+          // First fetch current user ID
+          const userTypeStr = AsyncStorage.getItem("userType");
+          userTypeStr.then((userType) => {
+            let fetchCurrentUserPromise: any;
+            if (userType === "worker") {
+              fetchCurrentUserPromise = axios.get(API_ENDPOINTS.WORKER_PROFILE, {
+                headers: { Authorization: `Bearer ${t}` },
+              }).then(res => {
+                currentId = res.data.id;
+              }).catch(() => {});
+            } else if (userType === "facility") {
+              fetchCurrentUserPromise = axios.get(API_ENDPOINTS.FACILITY_PROFILE, {
+                headers: { Authorization: `Bearer ${t}` },
+              }).then(res => {
+                currentId = res.data.id;
+              }).catch(() => {});
+            }
+            
+            Promise.all([
+              fetchCurrentUserPromise,
+              axios.get(API_ENDPOINTS.JOBS_LIST, {
+                headers: { Authorization: `Bearer ${t}` },
+              }).then(res => {
+                jobsData = Array.isArray(res.data) ? res.data : (res.data.items || []);
+              }).catch(() => {}),
+              
+              axios.get(API_ENDPOINTS.FACILITIES_LIST, {
+                headers: { Authorization: `Bearer ${t}` },
+              }).then(res => {
+                facilitiesData = Array.isArray(res.data) ? res.data : (res.data.items || []);
+              }).catch(() => {}),
+              
+              axios.get(API_ENDPOINTS.WORKERS_LIST, {
+                headers: { Authorization: `Bearer ${t}` },
+              }).then(res => {
+                workersData = Array.isArray(res.data) ? res.data : (res.data.items || []);
+              }).catch(() => {}),
+            ]).then(() => {
+              const filteredJobs = jobsData.filter(
+                (job: any) => job.facility_id !== currentId && job.worker_id !== currentId
+              );
+              const filteredFacilities = facilitiesData.filter(
+                (facility: any) => facility.id !== currentId
+              );
+              const filteredWorkers = workersData.filter(
+                (worker: any) => worker.id !== currentId
+              );
+              
+              setJobs(filteredJobs);
+              setFacilities(filteredFacilities);
+              setWorkers(filteredWorkers);
+              
+              // Fetch workers applications if user is a worker
+              if (userType === "worker") {
+                axios.get(API_ENDPOINTS.JOB_APPLICATIONS_WORKER, {
+                  headers: { Authorization: `Bearer ${t}` },
+                }).then(res => {
+                  const applications = Array.isArray(res.data) ? res.data : [];
+                  const appliedIds = new Set(applications.map((app: any) => app.job_post_id));
+                  setAppliedJobIds(appliedIds);
+                  console.log("Worker applied to jobs:", Array.from(appliedIds));
+                }).catch(() => {});
+              }
+              
+              setLoading(false);
+            });
+          });
+        }
+      });
+    }, [])
+  );
 
   if (loading) {
     return (
@@ -196,116 +327,115 @@ export default function WorkerHomePage() {
         />
         <View style={styles.headerSpacer} />
       </View>
-  <View style={{ flex: 1, backgroundColor: '#fff' }}>
-      <ScrollView style={styles.container}>
-        <Text style={styles.pageHeader}>Welcome to MedPost</Text>
+      <View style={{ flex: 1, backgroundColor: "#fff" }}>
+        <ScrollView style={styles.container}>
+          <Text style={styles.pageHeader}>Welcome to MedPost</Text>
 
-        <Text style={styles.sectionTitle}>Available Jobs ({jobs.length})</Text>
-        {jobs.length === 0 ? (
-          <Text style={styles.emptyText}>No jobs available at the moment.</Text>
-        ) : (
-          jobs.map((job) => (
-            <TouchableOpacity
-              key={job.id}
-              style={styles.card}
-              onPress={() => router.push("/(tabs)/worker-home")}
-            >
-              <Image
-                source={{ uri: job.facility?.logo_url || "https://via.placeholder.com/50" }}
-                style={styles.avatar}
+          <Text style={styles.sectionTitle}>Available Jobs ({jobs.length})</Text>
+          {jobs.length === 0 ? (
+            <Text style={styles.emptyText}>No jobs available at the moment.</Text>
+          ) : (
+            jobs.map((job) => {
+              const facility = facilities.find(f => f.id === job.facility_id);
+              return (
+                <View key={job.id} style={styles.jobCard}>
+                  <View style={styles.jobHeader}>
+                    <Text style={styles.jobTitle}>{job.position_title}</Text>
+                    {job.is_active && (
+                      <View style={[styles.statusBadge, styles.activeBadge]}>
+                        <Text style={[styles.statusText, { color: '#155724' }]}>Active</Text>
+                      </View>
+                    )}
+                  </View>
+                  {facility && (
+                    <Text style={styles.facilityName}>{facility.legal_name}</Text>
+                  )}
+                  <Text style={styles.jobDetail}>
+                    {job.employment_type ? job.employment_type.replace("_", " ") : "N/A"} • {job.compensation_type || "N/A"}
+                  </Text>
+                  {(() => {
+                    let min, max;
+                    if (job.compensation_type === 'HOURLY') {
+                      min = job.hourly_min;
+                      max = job.hourly_max;
+                    } else if (job.compensation_type === 'MONTHLY') {
+                      min = job.monthly_min;
+                      max = job.monthly_max;
+                    } else if (job.compensation_type === 'YEARLY') {
+                      min = job.yearly_min;
+                      max = job.yearly_max;
+                    }
+                    if (min || max) {
+                      return (
+                        <Text style={styles.compensationDisplay}>
+                          ${min}
+                          {max && min !== max ? ` - $${max}` : ""}
+                        </Text>
+                      );
+                    }
+                    return null;
+                  })()}
+                  {job.city && job.state_province && (
+                    <Text style={styles.jobLocation}>📍 {job.city}, {job.state_province}</Text>
+                  )}
+                  {job.description && (
+                    <Text style={styles.jobDescription} numberOfLines={2}>
+                      {job.description}
+                    </Text>
+                  )}
+                  <TouchableOpacity 
+                    style={[
+                      styles.applyButton,
+                      (!job.is_active || appliedJobIds.has(job.id)) && styles.applyButtonDisabled
+                    ]}
+                    onPress={() => {
+                      if (job.is_active && !appliedJobIds.has(job.id)) {
+                        router.push({
+                          pathname: "/application-worker",
+                          params: { jobId: job.id, facilityId: job.facility_id }
+                        });
+                      }
+                    }}
+                    disabled={!job.is_active || appliedJobIds.has(job.id)}
+                  >
+                    <Text style={styles.applyButtonText}>
+                      {appliedJobIds.has(job.id) ? "Applied" : job.is_active ? "Apply Now" : "Position Closed"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })
+          )}
+
+          <Text style={styles.sectionTitle}>Available Facilities ({facilities.length})</Text>
+          <FlatList
+            data={facilities}
+            keyExtractor={item => item.id}
+            renderItem={({ item }) => (
+              <FacilityCard
+                facility={item}
+                onPress={() => router.push({ pathname: '/facility-detail', params: { facilityId: item.id } })}
               />
-              <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>{job.title}</Text>
-                <Text style={styles.cardSub}>{job.facility?.name || "Facility"}</Text>
-                <Text style={styles.cardSubSmall}>
-                  {job.city}, {job.state_province}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))
-        )}
+            )}
+            ListEmptyComponent={<Text style={styles.emptyText}>No facilities available at the moment.</Text>}
+            scrollEnabled={false}
+          />
 
-        <Text style={styles.sectionTitle}>Available Facilities ({facilities.length})</Text>
-        {facilities.length === 0 ? (
-          <Text style={styles.emptyText}>No facilities available at the moment.</Text>
-        ) : (
-          facilities.map((facility) => (
-            <FacilityCard
-              key={facility.id}
-              facility={facility}
-              onPress={() => setSelectedFacility(facility)}
-            />
-          ))
-        )}
-
-        <Text style={styles.sectionTitle}>Available Workers ({workers.length})</Text>
-        {workers.length === 0 ? (
-          <Text style={styles.emptyText}>No workers available at the moment.</Text>
-        ) : (
-          workers.map((worker) => (
-            <WorkerCard
-              key={worker.id}
-              worker={worker}
-              onPress={() => setSelectedWorker(worker)}
-            />
-          ))
-        )}
-      </ScrollView>
+          <Text style={styles.sectionTitle}>Available Workers ({workers.length})</Text>
+          <FlatList
+            data={workers}
+            keyExtractor={item => item.id}
+            renderItem={({ item }) => (
+              <WorkerCard
+                worker={item}
+                onPress={() => router.push({ pathname: '/worker-detail', params: { workerId: item.id } })}
+              />
+            )}
+            ListEmptyComponent={<Text style={styles.emptyText}>No workers available at the moment.</Text>}
+            scrollEnabled={false}
+          />
+        </ScrollView>
       </View>
-
-      {/* Facility Profile Modal */}
-      {selectedFacility && (
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setSelectedFacility(null)}
-        >
-          <TouchableOpacity
-            style={styles.modalContent}
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setSelectedFacility(null)}
-            >
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
-            <ScrollView style={styles.profileScroll}>
-              <FacilityProfileView
-                facility={selectedFacility}
-                jobs={jobs.filter((j) => j.facility_id === selectedFacility.id)}
-              />
-            </ScrollView>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      )}
-
-      {/* Worker Profile Modal */}
-      {selectedWorker && (
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setSelectedWorker(null)}
-        >
-          <TouchableOpacity
-            style={styles.modalContent}
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setSelectedWorker(null)}
-            >
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
-            <ScrollView style={styles.profileScroll}>
-              <WorkerProfileView worker={selectedWorker} endorsements={[]} />
-            </ScrollView>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      )}
-
       <BottomTab userType={userType || "worker"} active="home" />
     </SafeAreaView>
   );
@@ -355,7 +485,7 @@ export default function WorkerHomePage() {
   pageHeader: {
     fontSize: 22,
     fontWeight: "bold",
-    color: "#333",
+    color: "#2c3e50",
     marginBottom: 15,
     textAlign: "center",
   },
@@ -413,13 +543,15 @@ export default function WorkerHomePage() {
     borderRadius: 30,
     marginRight: 12,
     backgroundColor: "#e0e0e0",
+    overflow: "hidden",
   },
   facilityLogo: {
     width: 60,
     height: 60,
-    borderRadius: 8,
+    borderRadius: 30,
     marginRight: 12,
     backgroundColor: "#e0e0e0",
+    overflow: "hidden",
   },
   cardContent: {
     flex: 1,
@@ -434,6 +566,12 @@ export default function WorkerHomePage() {
     fontSize: 14,
     color: "#555",
     marginTop: 2,
+  },
+  cardLocation: {
+    fontSize: 14,
+    color: "#555",
+    marginTop: 3,
+    marginBottom: 4,
   },
   cardSubSmall: {
     fontSize: 12,
@@ -533,5 +671,85 @@ export default function WorkerHomePage() {
     fontSize: 14,
     color: "#555",
     marginVertical: 8,
+  },
+  jobCard: {
+    backgroundColor: "#f9f9f9",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  jobHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 8,
+  },
+  jobTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#2c3e50",
+    flex: 1,
+    marginRight: 10,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  activeBadge: {
+    backgroundColor: "#d4edda",
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  jobDetail: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 4,
+  },
+  jobLocation: {
+    fontSize: 14,
+    color: "#00ced1",
+    marginBottom: 8,
+  },
+  jobDescription: {
+    fontSize: 14,
+    color: "#555",
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  facilityName: {
+    fontSize: 14,
+    color: "#666",
+    fontWeight: "500",
+    marginBottom: 8,
+  },
+  applyButton: {
+    backgroundColor: "#00ced1",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  applyButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  applyButtonDisabled: {
+    backgroundColor: "#ccc",
+    opacity: 0.6,
+  },
+  compensationDisplay: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#00ced1",
+    marginBottom: 8,
   },
 });

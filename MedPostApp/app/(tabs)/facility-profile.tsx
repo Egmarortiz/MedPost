@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Platform,
+  Modal,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -26,7 +27,8 @@ const getStorageItem = async (key: string) => {
 };
 
 // Reusable view for rendering facility profile content 
-export function FacilityProfileView({ facility, jobs = [] }: { facility: any; jobs?: any[] }) {
+export function FacilityProfileView({ facility, jobs = [], applications = [], setApplications, updateApplicationStatus }: { facility: any; jobs?: any[]; applications?: any[]; setApplications?: any; updateApplicationStatus?: any }) {
+  const router = useRouter();
   if (!facility) return null;
 
   return (
@@ -119,21 +121,207 @@ export function FacilityProfileView({ facility, jobs = [] }: { facility: any; jo
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Job Postings</Text>
+        <View style={styles.jobHeaderContainer}>
+          <Text style={styles.cardTitle}>Job Postings</Text>
+          <TouchableOpacity 
+            style={styles.postJobButton}
+            onPress={() => router.push("/(tabs)/job-post")}
+          >
+            <Text style={styles.postJobButtonText}>+ Post Job</Text>
+          </TouchableOpacity>
+        </View>
         {jobs && jobs.length > 0 ? (
           jobs.map((job: any) => (
-            <View key={job.id} style={styles.jobItem}>
-              <Text style={styles.jobPosition}>{job.position_title}</Text>
-              <Text style={styles.jobCompany}>{job.employment_type?.replace("_", " ")} • {job.compensation_type}</Text>
-              {job.city && job.state_province && (<Text style={styles.jobLocation}>{job.city}, {job.state_province}</Text>)}
-              <View style={[styles.statusBadge, job.is_active ? styles.activeJobBadge : styles.closedJobBadge]}>
-                <Text style={[styles.statusText, { color: job.is_active ? '#155724' : '#721c24' }]}>{job.is_active ? "Active" : "Closed"}</Text>
+            <View key={job.id} style={styles.jobCard}>
+              <View style={styles.jobHeader}>
+                <Text style={styles.jobTitle}>{job.position_title}</Text>
+                {job.is_active && (
+                  <View style={[styles.statusBadge, styles.activeBadge]}>
+                    <Text style={[styles.statusText, { color: '#155724' }]}>Active</Text>
+                  </View>
+                )}
               </View>
-              {job.description && (<Text style={styles.jobDescription} numberOfLines={2}>{job.description}</Text>)}
+              
+              <Text style={styles.jobDetail}>
+                {job.employment_type ? job.employment_type.replace("_", " ") : "N/A"} • {job.compensation_type || "N/A"}
+              </Text>
+              
+              {(() => {
+                let min, max;
+                if (job.compensation_type === 'HOURLY') {
+                  min = job.hourly_min;
+                  max = job.hourly_max;
+                } else if (job.compensation_type === 'MONTHLY') {
+                  min = job.monthly_min;
+                  max = job.monthly_max;
+                } else if (job.compensation_type === 'YEARLY') {
+                  min = job.yearly_min;
+                  max = job.yearly_max;
+                }
+                
+                if (min || max) {
+                  return (
+                    <Text style={styles.compensationDisplay}>
+                      ${min}
+                      {max && min !== max ? ` - $${max}` : ""}
+                    </Text>
+                  );
+                }
+                return null;
+              })()}
+              
+              {job.city && job.state_province && (
+                <Text style={styles.jobLocation}>📍 {job.city}, {job.state_province}</Text>
+              )}
+              
+              {job.description && (
+                <Text style={styles.jobDescription} numberOfLines={2}>{job.description}</Text>
+              )}
             </View>
           ))
         ) : (
           <Text style={styles.noJobs}>No job postings yet</Text>
+        )}
+      </View>
+
+      {/* Job Applications Section */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Applications</Text>
+        {applications && applications.length > 0 ? (
+          applications.map((app: any) => (
+            <View
+              key={app.id}
+              style={styles.applicationCard}
+            >
+              <Text style={styles.applicationTitle}>
+                {app.position_title || app.job_post?.position_title || app.position?.title || 'Job Position'}
+              </Text>
+              <Text style={styles.applicationDetail}>
+                Applicant: {app.worker?.full_name || app.worker_name || 'Unknown'}
+              </Text>
+              {app.worker?.title && (
+                <Text style={styles.applicationDetail}>
+                  Title: {app.worker.title}
+                </Text>
+              )}
+              {(app.email || app.worker?.email) && (
+                <Text style={styles.applicationDetail}>
+                  Email: {app.email || app.worker?.email}
+                </Text>
+              )}
+              {(app.phone_e164 || app.worker?.phone_e164 || app.worker?.phone || app.worker?.phone_number) && (
+                <Text style={styles.applicationDetail}>
+                  Phone: {app.phone_e164 || app.worker?.phone_e164 || app.worker?.phone || app.worker?.phone_number}
+                </Text>
+              )}
+              {app.cover_letter && (
+                <Text style={styles.applicationDetail}>
+                  Cover Letter: {app.cover_letter}
+                </Text>
+              )}
+              
+              {/* Status Modal Button */}
+              <View style={styles.statusSection}>
+                <Text style={styles.statusLabel}>Status:</Text>
+                <TouchableOpacity
+                  style={styles.statusButton}
+                  onPress={() => {
+                    setApplications((prev: any) =>
+                      prev.map((a: any) =>
+                        a.id === app.id ? { ...a, modalOpen: true } : a
+                      )
+                    );
+                  }}
+                >
+                  <Text style={styles.statusButtonText}>{app.status}</Text>
+                  <Text style={styles.statusButtonArrow}>▼</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Status Modal */}
+              <Modal
+                visible={app.modalOpen || false}
+                transparent={true}
+                animationType="fade"
+              >
+                <TouchableOpacity
+                  style={styles.modalOverlay}
+                  onPress={() => {
+                    setApplications((prev: any) =>
+                      prev.map((a: any) =>
+                        a.id === app.id ? { ...a, modalOpen: false } : a
+                      )
+                    );
+                  }}
+                >
+                  <View style={styles.modalContent}>
+                    <Text style={styles.modalTitle}>Select Status</Text>
+                    {["SUBMITTED", "REVIEWED", "SHORTLISTED", "REJECTED", "HIRED"].map((status) => (
+                      <TouchableOpacity
+                        key={status}
+                        style={[
+                          styles.modalOption,
+                          app.status === status && styles.modalOptionSelected,
+                        ]}
+                        onPress={() => {
+                          updateApplicationStatus(app.id, status);
+                          setApplications((prev: any) =>
+                            prev.map((a: any) =>
+                              a.id === app.id ? { ...a, modalOpen: false } : a
+                            )
+                          );
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.modalOptionText,
+                            app.status === status && styles.modalOptionTextSelected,
+                          ]}
+                        >
+                          {status}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </TouchableOpacity>
+              </Modal>
+
+              {app.created_at && (
+                <Text style={styles.applicationDetail}>Applied: {new Date(app.created_at).toLocaleDateString()}</Text>
+              )}
+              {app.answer_text && (
+                <Text style={styles.applicationDetail}>Answer: {app.answer_text}</Text>
+              )}
+              <TouchableOpacity
+                onPress={() => {
+                  if (app.worker_id) {
+                    router.push({ pathname: "/(tabs)/worker-detail", params: { workerId: app.worker_id } });
+                  } else {
+                    Alert.alert("Error", "Worker information not available");
+                  }
+                }}
+              >
+                <Text style={styles.viewDetailText}>Tap to view full profile →</Text>
+              </TouchableOpacity>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.noJobs}>No applications received yet</Text>
+        )}
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Member Since</Text>
+        {facility.created_at ? (
+          <Text style={styles.dateText}>
+            {new Date(facility.created_at).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })}
+          </Text>
+        ) : (
+          <Text style={styles.dateText}>Not available</Text>
         )}
       </View>
 
@@ -147,6 +335,7 @@ export default function FacilityProfile() {
   const [facility, setFacility] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [jobs, setJobs] = useState<any[]>([]);
+  const [applications, setApplications] = useState<any[]>([]);
 
   const loadProfile = async () => {
     try {
@@ -156,20 +345,60 @@ export default function FacilityProfile() {
       const response = await axios.get(API_ENDPOINTS.FACILITY_PROFILE, {
         headers: storageToken ? { Authorization: `Bearer ${storageToken}` } : {},
       });
-
       setFacility(response.data);
 
       const jobsResponse = await axios.get(API_ENDPOINTS.JOBS_LIST, {
         headers: storageToken ? { Authorization: `Bearer ${storageToken}` } : {},
       });
-
       const facilityJobs = Array.isArray(jobsResponse.data)
         ? jobsResponse.data.filter((job: any) => job.facility_id === response.data.id)
         : [];
-
       setJobs(facilityJobs || []);
 
-      if (!response.data.is_verified && !response.data.id_photo_url) {
+      // Fetch job applications for this facility
+      const appsResponse = await axios.get(API_ENDPOINTS.JOB_APPLICATIONS_FACILITY, {
+        headers: storageToken ? { Authorization: `Bearer ${storageToken}` } : {},
+      });
+      
+      // Fetch worker details for each application
+      let appsWithWorkers = Array.isArray(appsResponse.data) ? appsResponse.data : [];
+      if (appsWithWorkers.length > 0) {
+        appsWithWorkers = await Promise.all(
+          appsWithWorkers.map(async (app: any) => {
+            let appData = { ...app };
+            
+            if (app.worker_id) {
+              try {
+                const workerRes = await axios.get(`${API_ENDPOINTS.WORKERS_LIST}${app.worker_id}`, {
+                  headers: storageToken ? { Authorization: `Bearer ${storageToken}` } : {},
+                });
+                appData.worker = workerRes.data;
+              } catch (err) {
+                console.warn(`Failed to fetch worker ${app.worker_id}:`, err);
+              }
+            }
+            
+            // Fetch job posting details
+            if (app.job_post_id) {
+              try {
+                const jobRes = await axios.get(`${API_ENDPOINTS.JOBS_LIST}${app.job_post_id}`, {
+                  headers: storageToken ? { Authorization: `Bearer ${storageToken}` } : {},
+                });
+                appData.job_post = jobRes.data;
+                appData.position_title = jobRes.data.position_title;
+              } catch (err) {
+                console.warn(`Failed to fetch job posting ${app.job_post_id}:`, err);
+              }
+            }
+            
+            return appData;
+          })
+        );
+      }
+      setApplications(appsWithWorkers);
+
+      // Redirect to verification if facility hasnt submitted documents
+      if (!response.data.id_photo_url) {
         router.replace("/(tabs)/facility-verification");
         return;
       }
@@ -180,6 +409,61 @@ export default function FacilityProfile() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const updateApplicationStatus = async (appId: string, newStatus: string) => {
+    try {
+      const storageToken = await getStorageItem("token");
+      await axios.patch(
+        `${API_ENDPOINTS.JOB_APPLICATION_UPDATE_STATUS}/${appId}/status`,
+        { status: newStatus },
+        {
+          headers: storageToken ? { Authorization: `Bearer ${storageToken}` } : {},
+        }
+      );
+      
+      // Update local state
+      setApplications((prev: any[]) =>
+        prev.map((app: any) =>
+          app.id === appId ? { ...app, status: newStatus } : app
+        )
+      );
+      Alert.alert("Success", "Application status updated");
+    } catch (error: any) {
+      console.error("Failed to update application status:", error);
+      console.error("Error details:", error.response?.data);
+      Alert.alert("Error", "Failed to update status");
+    }
+  };
+
+  const handleLogout = async () => {
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to logout?",
+      [
+        { text: "Cancel", onPress: () => {}, style: "cancel" },
+        {
+          text: "Logout",
+          onPress: async () => {
+            try {
+              if (Platform.OS === "web") {
+                window.localStorage.removeItem("token");
+                window.localStorage.removeItem("userType");
+              } else {
+                await AsyncStorage.removeItem("token");
+                await AsyncStorage.removeItem("userType");
+              }
+              // Navigate to login
+              router.replace("/(tabs)/login");
+            } catch (error) {
+              console.error("Logout error:", error);
+              Alert.alert("Error", "Failed to logout");
+            }
+          },
+          style: "destructive",
+        },
+      ]
+    );
   };
 
   useEffect(() => {
@@ -212,14 +496,20 @@ export default function FacilityProfile() {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backButton}>‹</Text>
+        <TouchableOpacity onPress={handleLogout}>
+          <Text style={styles.backButton}>⏻</Text>
         </TouchableOpacity>
         <Image source={require("../../assets/images/MedPost-Icon.png")} style={styles.headerLogo} />
         <View style={styles.headerSpacer} />
       </View>
       <ScrollView style={styles.container}>
-        <FacilityProfileView facility={facility} jobs={jobs} />
+        <FacilityProfileView 
+          facility={facility} 
+          jobs={jobs} 
+          applications={applications}
+          setApplications={setApplications}
+          updateApplicationStatus={updateApplicationStatus}
+        />
 
         <TouchableOpacity style={styles.updateProfileButton} onPress={() => router.push("/(tabs)/facility-update")}>
           <Text style={styles.updateProfileButtonText}>Update Profile</Text>
@@ -246,7 +536,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#00ced1",
   },
   backButton: {
-    fontSize: 32,
+    fontSize: 18,
     color: "#fff",
     fontWeight: "300",
     paddingHorizontal: 8,
@@ -453,6 +743,39 @@ const styles = StyleSheet.create({
     color: "#666",
     lineHeight: 18,
   },
+  jobCard: {
+    backgroundColor: "#f8f9fa",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  jobHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  jobTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#2c3e50",
+    flex: 1,
+    marginRight: 10,
+  },
+  jobDetail: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 4,
+  },
+  compensationDisplay: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#00ced1",
+    marginBottom: 12,
+  },
+  activeBadge: {
+    backgroundColor: "#d4edda",
+  },
   noJobs: {
     fontSize: 14,
     color: "#999",
@@ -487,7 +810,127 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  jobHeaderContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  postJobButton: {
+    backgroundColor: "#00ced1",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  postJobButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
   spacer: {
     height: 40,
+  },
+  applicationCard: {
+    backgroundColor: "#f8f9fa",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  applicationTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#00ced1",
+    marginBottom: 8,
+  },
+  applicationDetail: {
+    fontSize: 14,
+    color: "#555",
+    marginBottom: 4,
+  },
+  statusSection: {
+    marginTop: 12,
+    marginBottom: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#e0e0e0",
+    paddingTop: 12,
+  },
+  statusLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#666",
+    marginBottom: 8,
+  },
+  statusButton: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "#fff",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  statusButtonText: {
+    fontSize: 14,
+    color: "#333",
+    fontWeight: "500",
+  },
+  statusButtonArrow: {
+    fontSize: 12,
+    color: "#999",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 20,
+    minWidth: 280,
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 16,
+    color: "#333",
+  },
+  modalOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  modalOptionSelected: {
+    backgroundColor: "#e0f7fa",
+  },
+  modalOptionText: {
+    fontSize: 14,
+    color: "#666",
+  },
+  modalOptionTextSelected: {
+    color: "#00ced1",
+    fontWeight: "600",
+  },
+  viewDetailText: {
+    fontSize: 13,
+    color: "#00ced1",
+    fontWeight: "600",
+    marginTop: 8,
+  },
+  dateText: {
+    fontSize: 16,
+    color: "#2c3e50",
+    fontWeight: "500",
   },
 });

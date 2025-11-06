@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useFocusEffect } from "expo-router";
 import {
   View,
   Text,
@@ -19,6 +20,7 @@ import { useRouter } from "expo-router";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_ENDPOINTS } from "../../config/api";
+import BottomTab from "../../components/BottomTab";
 
 const experienceValidationSchema = yup.object().shape({
   company_name: yup.string().required("Company name is required"),
@@ -53,31 +55,41 @@ export default function Experience() {
   const [experiences, setExperiences] = useState<any[]>([]);
   const [deleting, setDeleting] = useState<string | null>(null);
 
-  useEffect(() => {
-    const getWorkerInfo = async () => {
-      try {
-        const token = await AsyncStorage.getItem("token");
-        const response = await axios.get(API_ENDPOINTS.WORKER_PROFILE, {
-          headers: token ? {
-            "Authorization": `Bearer ${token}`
-          } : {}
-        });
-        setWorkerId(response.data.id);
-        
-        // Load existing experiences
-        if (response.data.experiences) {
-          setExperiences(response.data.experiences);
-        }
-      } catch (error: any) {
-        Alert.alert("Error", "Could not fetch worker information");
-        console.error(error);
-      } finally {
-        setLoading(false);
+  const getWorkerInfo = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const response = await axios.get(API_ENDPOINTS.WORKER_PROFILE, {
+        headers: token ? {
+          "Authorization": `Bearer ${token}`
+        } : {}
+      });
+      setWorkerId(response.data.id);
+      // Load existing experiences
+      console.log("[worker-experience] API experiences:", response.data.experiences);
+      if (response.data.experiences) {
+        setExperiences(response.data.experiences);
+        console.log("[worker-experience] setExperiences:", response.data.experiences);
+      } else {
+        setExperiences([]);
+        console.log("[worker-experience] setExperiences: []");
       }
-    };
-    
+    } catch (error: any) {
+      Alert.alert("Error", "Could not fetch worker information");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     getWorkerInfo();
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      getWorkerInfo();
+    }, [])
+  );
 
   const handleExperienceSubmit = async (values: any) => {
     if (!workerId) {
@@ -172,177 +184,176 @@ export default function Experience() {
   }
 
   return (
-    <SafeAreaView style={styles.safeContainer}>
-      <View style={styles.header}>
-  <TouchableOpacity onPress={() => router.replace("/(tabs)/worker-profile")}> 
-          <Text style={styles.backButton}>‹</Text>
-        </TouchableOpacity>
-        <Image
-          source={require("../../assets/images/MedPost-Icon.png")}
-          style={styles.headerLogo}
-        />
-        <View style={styles.headerSpacer} />
-      </View>
-      <View style={{ flex: 1, backgroundColor: '#fff' }}>
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-        >
-          <ScrollView
-            style={{ flex: 1, backgroundColor: '#fff' }}
-            contentContainerStyle={styles.container}
-            keyboardShouldPersistTaps="handled"
-            contentInsetAdjustmentBehavior="automatic"
-          >
-        {/* Existing Experiences Section */}
-        {experiences.length > 0 && (
-        <View>
-          <Text style={styles.headerLabel}>Your Experiences</Text>
-          {experiences.map((exp: any) => (
-            <View key={exp.id} style={styles.experienceCard}>
-              <View style={styles.experienceHeader}>
-                <View style={styles.experienceInfo}>
-                  <Text style={styles.experiencePosition}>{exp.position_title}</Text>
-                  <Text style={styles.experienceCompany}>{exp.company_name}</Text>
-                  <Text style={styles.experienceDate}>
-                    {exp.start_date && formatDateDisplay(exp.start_date)}
-                    {' - '}
-                    {exp.end_date 
-                      ? formatDateDisplay(exp.end_date)
-                      : 'Present'}
-                  </Text>
-                </View>
-                <TouchableOpacity 
-                  onPress={() => handleDeleteExperience(exp.id)}
-                  disabled={deleting === exp.id}
-                >
-                  {deleting === exp.id ? (
-                    <ActivityIndicator size="small" color="#dc3545" />
-                  ) : (
-                    <Text style={styles.deleteButton}>✕</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-              {exp.description && (
-                <Text style={styles.experienceDescription}>{exp.description}</Text>
-              )}
-            </View>
-          ))}
-          <Text style={styles.sectionDivider}>Add More Experience</Text>
+    <>
+      <SafeAreaView style={styles.safeContainer}>
+        <View style={styles.header}>
+          <Image
+            source={require("../../assets/images/MedPost-Icon.png")}
+            style={styles.headerLogo}
+          />
+          <View style={styles.headerSpacer} />
         </View>
-      )}
-
-      <Formik
-        initialValues={{
-          company_name: "",
-          position_title: "",
-          start_date: "",
-          end_date: "",
-          description: "",
-        }}
-        validationSchema={experienceValidationSchema}
-        onSubmit={handleExperienceSubmit}
-      >
-        {({
-          handleChange,
-          handleBlur,
-          handleSubmit,
-          values,
-          errors,
-          touched,
-        }) => (
-          <>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Company Name</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter company name"
-                placeholderTextColor="#999"
-                onChangeText={handleChange("company_name")}
-                onBlur={handleBlur("company_name")}
-                value={values.company_name}
-              />
-              {touched.company_name && errors.company_name && (
-                <Text style={styles.errorText}>{errors.company_name}</Text>
-              )}
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Position Title</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your title"
-                placeholderTextColor="#999"
-                onChangeText={handleChange("position_title")}
-                onBlur={handleBlur("position_title")}
-                value={values.position_title}
-              />
-              {touched.position_title && errors.position_title && (
-                <Text style={styles.errorText}>{errors.position_title}</Text>
-              )}
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Start Date</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor="#999"
-                onChangeText={handleChange("start_date")}
-                onBlur={handleBlur("start_date")}
-                value={values.start_date}
-              />
-              {touched.start_date && errors.start_date && (
-                <Text style={styles.errorText}>{errors.start_date}</Text>
-              )}
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>End Date <Text style={styles.optionalText}>(Optional - leave blank if current)</Text></Text>
-              <TextInput
-                style={styles.input}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor="#999"
-                onChangeText={handleChange("end_date")}
-                onBlur={handleBlur("end_date")}
-                value={values.end_date}
-              />
-              {touched.end_date && errors.end_date && (
-                <Text style={styles.errorText}>{errors.end_date}</Text>
-              )}
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Description</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Describe your responsibilities and achievements"
-                placeholderTextColor="#999"
-                multiline
-                numberOfLines={5}
-                onChangeText={handleChange("description")}
-                onBlur={handleBlur("description")}
-                value={values.description}
-              />
-              {touched.description && errors.description && (
-                <Text style={styles.errorText}>{errors.description}</Text>
-              )}
-            </View>
-
-            <TouchableOpacity
-              style={styles.submitButton}
-              onPress={() => handleSubmit()}
+        <View style={{ flex: 1, backgroundColor: '#fff' }}>
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+          >
+            <ScrollView
+              style={{ flex: 1, backgroundColor: '#fff' }}
+              contentContainerStyle={styles.container}
+              keyboardShouldPersistTaps="handled"
+              contentInsetAdjustmentBehavior="automatic"
             >
-              <Text style={styles.submitText}>Submit</Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </Formik>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </View>
-    </SafeAreaView>
+              {/* Existing Experiences Section */}
+              {experiences.length > 0 && (
+                <View>
+                  {experiences.map((exp: any) => (
+                    <View key={exp.id} style={styles.experienceCard}>
+                      <View style={styles.experienceHeader}>
+                        <View style={styles.experienceInfo}>
+                          <Text style={styles.experiencePosition}>{exp.position_title}</Text>
+                          <Text style={styles.experienceCompany}>{exp.company_name}</Text>
+                          <Text style={styles.experienceDate}>
+                            {exp.start_date && formatDateDisplay(exp.start_date)}
+                            {' - '}
+                            {exp.end_date 
+                              ? formatDateDisplay(exp.end_date)
+                              : 'Present'}
+                          </Text>
+                        </View>
+                        <TouchableOpacity 
+                          onPress={() => handleDeleteExperience(exp.id)}
+                          disabled={deleting === exp.id}
+                        >
+                          {deleting === exp.id ? (
+                            <ActivityIndicator size="small" color="#dc3545" />
+                          ) : (
+                            <Text style={styles.deleteButton}>✕</Text>
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                      {exp.description && (
+                        <Text style={styles.experienceDescription}>{exp.description}</Text>
+                      )}
+                    </View>
+                  ))}
+                  <Text style={styles.sectionDivider}>Add More Experience</Text>
+                </View>
+              )}
+
+              <Formik
+                initialValues={{
+                  company_name: "",
+                  position_title: "",
+                  start_date: "",
+                  end_date: "",
+                  description: "",
+                }}
+                validationSchema={experienceValidationSchema}
+                onSubmit={handleExperienceSubmit}
+              >
+                {({
+                  handleChange,
+                  handleBlur,
+                  handleSubmit,
+                  values,
+                  errors,
+                  touched,
+                }) => (
+                  <>
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.label}>Company Name</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Enter company name"
+                        placeholderTextColor="#999"
+                        onChangeText={handleChange("company_name")}
+                        onBlur={handleBlur("company_name")}
+                        value={values.company_name}
+                      />
+                      {touched.company_name && errors.company_name && (
+                        <Text style={styles.errorText}>{errors.company_name}</Text>
+                      )}
+                    </View>
+
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.label}>Position Title</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Enter your title"
+                        placeholderTextColor="#999"
+                        onChangeText={handleChange("position_title")}
+                        onBlur={handleBlur("position_title")}
+                        value={values.position_title}
+                      />
+                      {touched.position_title && errors.position_title && (
+                        <Text style={styles.errorText}>{errors.position_title}</Text>
+                      )}
+                    </View>
+
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.label}>Start Date</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="YYYY-MM-DD"
+                        placeholderTextColor="#999"
+                        onChangeText={handleChange("start_date")}
+                        onBlur={handleBlur("start_date")}
+                        value={values.start_date}
+                      />
+                      {touched.start_date && errors.start_date && (
+                        <Text style={styles.errorText}>{errors.start_date}</Text>
+                      )}
+                    </View>
+
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.label}>End Date <Text style={styles.optionalText}>(Optional - leave blank if current)</Text></Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="YYYY-MM-DD"
+                        placeholderTextColor="#999"
+                        onChangeText={handleChange("end_date")}
+                        onBlur={handleBlur("end_date")}
+                        value={values.end_date}
+                      />
+                      {touched.end_date && errors.end_date && (
+                        <Text style={styles.errorText}>{errors.end_date}</Text>
+                      )}
+                    </View>
+
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.label}>Description</Text>
+                      <TextInput
+                        style={[styles.input, styles.textArea]}
+                        placeholder="Describe your responsibilities and achievements"
+                        placeholderTextColor="#999"
+                        multiline
+                        numberOfLines={5}
+                        onChangeText={handleChange("description")}
+                        onBlur={handleBlur("description")}
+                        value={values.description}
+                      />
+                      {touched.description && errors.description && (
+                        <Text style={styles.errorText}>{errors.description}</Text>
+                      )}
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.submitButton}
+                      onPress={() => handleSubmit()}
+                    >
+                      <Text style={styles.submitText}>Submit</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </Formik>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </View>
+        <BottomTab userType="worker" active="profile" />
+      </SafeAreaView>
+    </>
   );
 }
 

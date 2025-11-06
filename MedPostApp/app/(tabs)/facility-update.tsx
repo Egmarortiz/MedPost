@@ -10,6 +10,7 @@ import {
   SafeAreaView,
   Image,
   Platform,
+  KeyboardAvoidingView,
   ActivityIndicator,
 } from "react-native";
 import { Formik } from "formik";
@@ -19,6 +20,7 @@ import axios from "axios";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_ENDPOINTS } from "../../config/api";
+import BottomTab from "../../components/BottomTab";
 
 const getStorageItem = async (key: string) => {
   if (Platform.OS === "web") {
@@ -59,6 +61,7 @@ export default function FacilityEdit() {
       const response = await axios.get(API_ENDPOINTS.FACILITY_PROFILE, {
         headers: storedToken ? { Authorization: `Bearer ${storedToken}` } : {},
       });
+      console.log("Facility response:", JSON.stringify(response.data, null, 2));
       setFacility(response.data);
       setProfileImage(response.data.profile_image_url);
     } catch (error) {
@@ -139,13 +142,15 @@ export default function FacilityEdit() {
       }
       
       const updateData = {
-        ...values,
+        legal_name: values.legal_name,
+        hq_address_line1: values.address_line1,
+        hq_city: values.city,
+        hq_state_province: values.state_province,
+        hq_postal_code: values.postal_code,
+        phone_e164: values.phone_e164,
         profile_image_url: profileImage,
       };
 
-      if (values.phone_e164 !== undefined) {
-        updateData.phone_e164 = values.phone_e164;
-      }
       console.log('PATCH payload:', JSON.stringify(updateData, null, 2));
 
       console.log("=== FACILITY UPDATE REQUEST ===");
@@ -193,6 +198,46 @@ export default function FacilityEdit() {
     }
   };
 
+  const handleDeleteProfile = async () => {
+    Alert.alert(
+      "Delete Profile",
+      "Are you sure you want to delete your profile? This action cannot be undone.",
+      [
+        { text: "Cancel", onPress: () => {}, style: "cancel" },
+        {
+          text: "Delete",
+          onPress: async () => {
+            try {
+              if (!token) {
+                Alert.alert("Error", "You must be logged in.");
+                return;
+              }
+
+              await axios.delete(API_ENDPOINTS.FACILITY_DELETE, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+
+              Alert.alert("Success", "Your profile has been deleted.", [
+                {
+                  text: "OK",
+                  onPress: async () => {
+                    await setStorageItem("token", "");
+                    await setStorageItem("userType", "");
+                    router.push("index" as any);
+                  },
+                },
+              ]);
+            } catch (error: any) {
+              console.error("Delete error:", error);
+              Alert.alert("Error", "Could not delete profile. Please try again.");
+            }
+          },
+          style: "destructive",
+        },
+      ]
+    );
+  };
+
   if (!facility) {
     return (
       <SafeAreaView style={styles.safeContainer}>
@@ -204,22 +249,19 @@ export default function FacilityEdit() {
   }
 
   return (
+    <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+    >
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backButton}>‹</Text>
-        </TouchableOpacity>
         <Image
           source={require("../../assets/images/MedPost-Icon.png")}
           style={styles.headerLogo}
         />
-        <View style={styles.headerSpacer} />
       </View>
-      <View style={{ flex: 1, backgroundColor: "#fff" }}>
-        <ScrollView contentContainerStyle={styles.container}>
-          <Text style={styles.headerLabel}>Edit Profile</Text>
-
-          {/* Profile Image Section */}
+      <ScrollView contentContainerStyle={styles.container}>
+    
           <View style={styles.imageSection}>
             <TouchableOpacity onPress={pickProfileImage} disabled={uploading}>
               {profileImage ? (
@@ -247,6 +289,7 @@ export default function FacilityEdit() {
           <Formik
             initialValues={{
               legal_name: facility.legal_name || "",
+              email: facility.email || "",
               address_line1: facility.hq_address_line1 || "",
               city: facility.hq_city || "",
               state_province: facility.hq_state_province || "",
@@ -270,6 +313,16 @@ export default function FacilityEdit() {
                   {touched.legal_name && errors.legal_name && (
                     <Text style={styles.errorText}>{String(errors.legal_name)}</Text>
                   )}
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Email</Text>
+                  <TextInput
+                    style={[styles.input, { color: "#999" }]}
+                    keyboardType="email-address"
+                    value={values.email}
+                    editable={false}
+                  />
                 </View>
 
                 <View style={styles.inputContainer}>
@@ -340,12 +393,17 @@ export default function FacilityEdit() {
                 <TouchableOpacity style={styles.submitButton} onPress={() => handleSubmit()} disabled={uploading}>
                   <Text style={styles.submitText}>{uploading ? "Saving..." : "Save Changes"}</Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteProfile}>
+                  <Text style={styles.deleteButtonText}>Delete Profile</Text>
+                </TouchableOpacity>
               </>
             )}
           </Formik>
         </ScrollView>
-      </View>
+      <BottomTab userType="facility" active="profile" />
     </SafeAreaView>
+  </KeyboardAvoidingView>
   );
 }
 
@@ -366,7 +424,7 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 12,
@@ -460,7 +518,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     marginTop: 30,
-    marginBottom: 20,
+    marginBottom: 16,
     shadowColor: "#00ced1",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -468,6 +526,19 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   submitText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  deleteButton: {
+    backgroundColor: "#2d7b81ff",
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 1,
+    marginBottom: 20,
+  },
+  deleteButtonText: {
     color: "#fff",
     fontWeight: "bold",
     fontSize: 16,

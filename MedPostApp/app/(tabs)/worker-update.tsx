@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import BottomTab from "../../components/BottomTab";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { useRouter } from "expo-router";
@@ -192,6 +193,47 @@ export default function WorkerProfileUpdate() {
     }
   };
 
+  const handleDeleteProfile = async () => {
+    Alert.alert(
+      "Delete Profile",
+      "Are you sure you want to delete your profile? This action cannot be undone.",
+      [
+        { text: "Cancel", onPress: () => {}, style: "cancel" },
+        {
+          text: "Delete",
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem("token");
+              if (!token) {
+                Alert.alert("Error", "You must be logged in.");
+                return;
+              }
+
+              await axios.delete(API_ENDPOINTS.WORKER_DELETE, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+
+              Alert.alert("Success", "Your profile has been deleted.", [
+                {
+                  text: "OK",
+                  onPress: async () => {
+                    await AsyncStorage.removeItem("token");
+                    await AsyncStorage.removeItem("userType");
+                    router.push("index" as any);
+                  },
+                },
+              ]);
+            } catch (error: any) {
+              console.error("Delete error:", error);
+              Alert.alert("Error", "Could not delete profile. Please try again.");
+            }
+          },
+          style: "destructive",
+        },
+      ]
+    );
+  };
+
   const handleUpdateSubmit = async (values: any) => {
     try {
       const token = await AsyncStorage.getItem("token");
@@ -295,9 +337,6 @@ export default function WorkerProfileUpdate() {
     >
       <SafeAreaView style={styles.safeContainer}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.push("/(tabs)/worker-profile")}>
-            <Text style={styles.backButton}>‹</Text>
-          </TouchableOpacity>
           <Image
             source={require("../../assets/images/MedPost-Icon.png")}
             style={styles.headerLogo}
@@ -305,179 +344,183 @@ export default function WorkerProfileUpdate() {
           <View style={styles.headerSpacer} />
         </View>
         <ScrollView contentContainerStyle={styles.container} nestedScrollEnabled={true}>
+          <Formik
+            initialValues={existingWorker}
+            validationSchema={workerUpdateValidationSchema}
+            onSubmit={handleUpdateSubmit}
+            enableReinitialize
+          >
+            {({ handleChange, handleBlur, handleSubmit, setFieldValue, values, errors, touched }) => (
+              <>
+                <View style={styles.imageContainer}>
+                  {image ? (
+                    <Image source={{ uri: image }} style={styles.imagePreview} />
+                  ) : (
+                    <Text style={styles.imagePlaceholder}>No Image Selected</Text>
+                  )}
+                  <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
+                    <Text style={styles.uploadText}>Change Profile Image</Text>
+                  </TouchableOpacity>
+                </View>
 
-      <Formik
-        initialValues={existingWorker}
-        validationSchema={workerUpdateValidationSchema}
-        onSubmit={handleUpdateSubmit}
-        enableReinitialize
-      >
-        {({ handleChange, handleBlur, handleSubmit, setFieldValue, values, errors, touched }) => (
-          <>
-            <View style={styles.imageContainer}>
-              {image ? (
-                <Image source={{ uri: image }} style={styles.imagePreview} />
-              ) : (
-                <Text style={styles.imagePlaceholder}>No Image Selected</Text>
-              )}
-              <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
-                <Text style={styles.uploadText}>Change Profile Image</Text>
-              </TouchableOpacity>
-            </View>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Resume</Text>
+                  <Text style={styles.resumeStatus}>
+                    {resumeSelected ? "Resume selected" : "No Resume Selected"}
+                  </Text>
+                  <TouchableOpacity style={styles.resumeUploadButton} onPress={pickResume}>
+                    <Text style={styles.resumeUploadText}>Upload Resume</Text>
+                  </TouchableOpacity>
+                </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Resume</Text>
-              <Text style={styles.resumeStatus}>
-                {resumeSelected ? "Resume selected" : "No Resume Selected"}
-              </Text>
-              <TouchableOpacity style={styles.resumeUploadButton} onPress={pickResume}>
-                <Text style={styles.resumeUploadText}>Upload Resume</Text>
-              </TouchableOpacity>
-            </View>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Full Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={values.full_name}
+                    onChangeText={handleChange("full_name")}
+                    onBlur={handleBlur("full_name")}
+                  />
+                  {errors.full_name && touched.full_name && typeof errors.full_name === 'string' && <Text style={styles.errorText}>{errors.full_name}</Text>}
+                </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Full Name</Text>
-              <TextInput
-                style={styles.input}
-                value={values.full_name}
-                onChangeText={handleChange("full_name")}
-                onBlur={handleBlur("full_name")}
-              />
-              {errors.full_name && touched.full_name && <Text style={styles.errorText}>{errors.full_name}</Text>}
-            </View>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Email</Text>
+                  <TextInput
+                    style={[styles.input, { color: "#999" }]}
+                    keyboardType="email-address"
+                    value={values.email}
+                    editable={false}
+                  />
+                </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                style={[styles.input, { color: "#999" }]}
-                keyboardType="email-address"
-                value={values.email}
-                editable={false}
-              />
-            </View>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Phone</Text>
+                  <TextInput
+                    style={styles.input}
+                    keyboardType="phone-pad"
+                    value={values.phone_e164}
+                    onChangeText={handleChange("phone_e164")}
+                    onBlur={handleBlur("phone_e164")}
+                  />
+                </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Phone</Text>
-              <TextInput
-                style={styles.input}
-                keyboardType="phone-pad"
-                value={values.phone_e164}
-                onChangeText={handleChange("phone_e164")}
-                onBlur={handleBlur("phone_e164")}
-              />
-            </View>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Title</Text>
+                  <DropDownPicker
+                    open={openTitle}
+                    value={values.title}
+                    items={[
+                      { label: "Registered Nurse", value: "REGISTERED NURSE" },
+                      { label: "Licensed Practical Nurse", value: "LICENSED PRACTICAL NURSE" },
+                      { label: "Certified Nursing Assistant", value: "CERTIFIED NURSING ASSISTANT" },
+                      { label: "Caregiver", value: "CAREGIVER" },
+                      { label: "Support Staff", value: "SUPPORT STAFF" },
+                    ]}
+                    setOpen={setOpenTitle}
+                    setValue={(callback) => setFieldValue("title", callback(values.title))}
+                    style={styles.dropdown}
+                    dropDownContainerStyle={styles.dropdownContainer}
+                    placeholder="Select Title"
+                    listMode="MODAL"
+                  />
+                </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Title</Text>
-              <DropDownPicker
-                open={openTitle}
-                value={values.title}
-                items={[
-                  { label: "Registered Nurse", value: "REGISTERED NURSE" },
-                  { label: "Licensed Practical Nurse", value: "LICENSED PRACTICAL NURSE" },
-                  { label: "Certified Nursing Assistant", value: "CERTIFIED NURSING ASSISTANT" },
-                  { label: "Caregiver", value: "CAREGIVER" },
-                  { label: "Support Staff", value: "SUPPORT STAFF" },
-                ]}
-                setOpen={setOpenTitle}
-                setValue={(callback) => setFieldValue("title", callback(values.title))}
-                style={styles.dropdown}
-                dropDownContainerStyle={styles.dropdownContainer}
-                placeholder="Select Title"
-                listMode="MODAL"
-              />
-            </View>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Education Level</Text>
+                  <DropDownPicker
+                    open={openEducation}
+                    value={values.education_level}
+                    items={[
+                      { label: "High School", value: "HIGH SCHOOL" },
+                      { label: "Associate's Degree", value: "ASSOCIATE'S DEGREE" },
+                      { label: "Bachelor's Degree", value: "BACHELOR'S DEGREE" },
+                      { label: "Master's Degree", value: "MASTER'S DEGREE" },
+                      { label: "Doctorate's Degree", value: "DOCTORATE'S DEGREE" },
+                    ]}
+                    setOpen={setOpenEducation}
+                    setValue={(callback) => setFieldValue("education_level", callback(values.education_level))}
+                    style={styles.dropdown}
+                    dropDownContainerStyle={styles.dropdownContainer}
+                    placeholder="Select Education Level"
+                    listMode="MODAL"
+                  />
+                </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Education Level</Text>
-              <DropDownPicker
-                open={openEducation}
-                value={values.education_level}
-                items={[
-                  { label: "High School", value: "HIGH SCHOOL" },
-                  { label: "Associate's Degree", value: "ASSOCIATE'S DEGREE" },
-                  { label: "Bachelor's Degree", value: "BACHELOR'S DEGREE" },
-                  { label: "Master's Degree", value: "MASTER'S DEGREE" },
-                  { label: "Doctorate's Degree", value: "DOCTORATE'S DEGREE" },
-                ]}
-                setOpen={setOpenEducation}
-                setValue={(callback) => setFieldValue("education_level", callback(values.education_level))}
-                style={styles.dropdown}
-                dropDownContainerStyle={styles.dropdownContainer}
-                placeholder="Select Education Level"
-                listMode="MODAL"
-              />
-            </View>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Municipality</Text>
+                  <DropDownPicker
+                    open={openCity}
+                    value={values.city}
+                    items={PUERTO_RICO_MUNICIPALITIES.map((municipality) => ({
+                      label: municipality,
+                      value: municipality,
+                    }))}
+                    setOpen={setOpenCity}
+                    setValue={(callback) =>
+                      setFieldValue("city", callback(values.city))
+                    }
+                    style={styles.dropdown}
+                    dropDownContainerStyle={styles.dropdownContainer}
+                    placeholder="Select Municipality"
+                    listMode="MODAL"
+                    searchable={true}
+                    searchPlaceholder="Search municipalities..."
+                  />
+                  {errors.city && touched.city && typeof errors.city === 'string' && <Text style={styles.errorText}>{errors.city}</Text>}
+                </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Municipality</Text>
-              <DropDownPicker
-                open={openCity}
-                value={values.city}
-                items={PUERTO_RICO_MUNICIPALITIES.map((municipality) => ({
-                  label: municipality,
-                  value: municipality,
-                }))}
-                setOpen={setOpenCity}
-                setValue={(callback) =>
-                  setFieldValue("city", callback(values.city))
-                }
-                style={styles.dropdown}
-                dropDownContainerStyle={styles.dropdownContainer}
-                placeholder="Select Municipality"
-                listMode="MODAL"
-                searchable={true}
-                searchPlaceholder="Search municipalities..."
-              />
-              {errors.city && touched.city && <Text style={styles.errorText}>{errors.city}</Text>}
-            </View>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>State/Province</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={values.state_province}
+                    onChangeText={handleChange("state_province")}
+                    onBlur={handleBlur("state_province")}
+                  />
+                    {errors.state_province && touched.state_province && typeof errors.state_province === 'string' && (
+                      <Text style={styles.errorText}>{errors.state_province}</Text>
+                    )}
+                </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>State/Province</Text>
-              <TextInput
-                style={styles.input}
-                value={values.state_province}
-                onChangeText={handleChange("state_province")}
-                onBlur={handleBlur("state_province")}
-              />
-              {errors.state_province && touched.state_province && (
-                <Text style={styles.errorText}>{errors.state_province}</Text>
-              )}
-            </View>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Postal Code</Text>
+                  <TextInput
+                    style={styles.input}
+                    keyboardType="numeric"
+                    value={values.postal_code}
+                    onChangeText={handleChange("postal_code")}
+                    onBlur={handleBlur("postal_code")}
+                  />
+                    {errors.postal_code && touched.postal_code && typeof errors.postal_code === 'string' && (
+                      <Text style={styles.errorText}>{errors.postal_code}</Text>
+                    )}
+                </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Postal Code</Text>
-              <TextInput
-                style={styles.input}
-                keyboardType="numeric"
-                value={values.postal_code}
-                onChangeText={handleChange("postal_code")}
-                onBlur={handleBlur("postal_code")}
-              />
-              {errors.postal_code && touched.postal_code && (
-                <Text style={styles.errorText}>{errors.postal_code}</Text>
-              )}
-            </View>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Bio</Text>
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    multiline
+                    numberOfLines={4}
+                    value={values.bio}
+                    onChangeText={handleChange("bio")}
+                    onBlur={handleBlur("bio")}
+                  />
+                </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Bio</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                multiline
-                numberOfLines={4}
-                value={values.bio}
-                onChangeText={handleChange("bio")}
-                onBlur={handleBlur("bio")}
-              />
-            </View>
+                <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+                  <Text style={styles.submitText}>Save Changes</Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-              <Text style={styles.submitText}>Save Changes</Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </Formik>
+                <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteProfile}>
+                  <Text style={styles.deleteButtonText}>Delete Profile</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </Formik>
         </ScrollView>
+        <BottomTab userType="worker" active="profile" />
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
@@ -573,6 +616,7 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: "600",
     marginBottom: 5,
+    color:  "#2c3e50",
   },
   input: {
     height: 45,
@@ -614,6 +658,19 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   submitText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  deleteButton: {
+    backgroundColor: "#2d7b81ff",
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 18,
+    marginBottom: 20,
+  },
+  deleteButtonText: {
     color: "#fff",
     fontWeight: "bold",
     fontSize: 16,

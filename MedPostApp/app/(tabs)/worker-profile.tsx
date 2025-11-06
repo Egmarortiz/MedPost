@@ -46,9 +46,45 @@ const formatDateDisplay = (dateString: string): string => {
   }
 };
 
+const getApplicationStatusStyle = (status: string): any => {
+  switch (status) {
+    case "SUBMITTED":
+      return { backgroundColor: "#e3f2fd" };
+    case "REVIEWED":
+      return { backgroundColor: "#fff3e0" };
+    case "SHORTLISTED":
+      return { backgroundColor: "#f3e5f5" };
+    case "REJECTED":
+      return { backgroundColor: "#ffebee" };
+    case "HIRED":
+      return { backgroundColor: "#e8f5e9" };
+    default:
+      return { backgroundColor: "#f5f5f5" };
+  }
+};
+
+const getApplicationStatusTextColor = (status: string): any => {
+  switch (status) {
+    case "SUBMITTED":
+      return { color: "#1976d2" };
+    case "REVIEWED":
+      return { color: "#f57c00" };
+    case "SHORTLISTED":
+      return { color: "#7b1fa2" };
+    case "REJECTED":
+      return { color: "#c62828" };
+    case "HIRED":
+      return { color: "#388e3c" };
+    default:
+      return { color: "#666" };
+  }
+};
+
 // Reusable view for rendering worker profile content
 export function WorkerProfileView({ worker, endorsements = [], router }: { worker: any; endorsements?: any[]; router?: any }) {
   if (!worker) return null;
+
+  console.log('DEBUG: worker.verification_status =', worker.verification_status);
 
   return (
     <>
@@ -71,6 +107,7 @@ export function WorkerProfileView({ worker, endorsements = [], router }: { worke
         </View>
       </View>
 
+      {/* About Section */}
       {worker.bio && (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>About</Text>
@@ -78,19 +115,17 @@ export function WorkerProfileView({ worker, endorsements = [], router }: { worke
         </View>
       )}
 
+      {/* Professional Information */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Professional Information</Text>
-        
         <View style={styles.infoRow}>
           <Text style={styles.label}>Title:</Text>
           <Text style={styles.value}>{worker.title || "Not specified"}</Text>
         </View>
-
         <View style={styles.infoRow}>
           <Text style={styles.label}>Education:</Text>
           <Text style={styles.value}>{worker.education_level || "Not specified"}</Text>
         </View>
-
         <View style={styles.infoRow}>
           <Text style={styles.label}>Verification Status:</Text>
           {(worker.verification_status === 'VERIFIED' || worker.verification_status === 'COMPLETED') ? (
@@ -126,6 +161,7 @@ export function WorkerProfileView({ worker, endorsements = [], router }: { worke
         </View>
       </View>
 
+      {/* Resume Section */}
       {worker.resume_url && (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Resume</Text>
@@ -138,41 +174,12 @@ export function WorkerProfileView({ worker, endorsements = [], router }: { worke
         </View>
       )}
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Experience</Text>
-        {worker.experiences && worker.experiences.length > 0 ? (
-          worker.experiences.map((exp: any) => (
-            <View key={exp.id} style={styles.experienceItem}>
-              <Text style={styles.experiencePosition}>{exp.position_title}</Text>
-              <Text style={styles.experienceCompany}>{exp.company_name}</Text>
-              <Text style={styles.experienceDate}>
-                {formatDateDisplay(exp.start_date)}
-                {' - '}
-                {exp.end_date 
-                  ? formatDateDisplay(exp.end_date)
-                  : 'Present'}
-              </Text>
-              {exp.description && (
-                <Text style={styles.experienceDescription}>{exp.description}</Text>
-              )}
-            </View>
-          ))
-        ) : (
-          <Text style={styles.noExperience}>No work experience added yet</Text>
-        )}
-        <TouchableOpacity 
-          style={styles.addExperienceButton}
-          onPress={() => router.push('/(tabs)/worker-experience')}
-        >
-          <Text style={styles.addExperienceButtonText}>+ Add Experience</Text>
-        </TouchableOpacity>
-      </View>
-
+      {/* Contact Information */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Contact Information</Text>
         <View style={styles.infoRow}>
           <Text style={styles.label}>Email:</Text>
-          <Text style={styles.value}>{worker.email}</Text>
+          <Text style={styles.value}>{worker.email || "Not specified"}</Text>
         </View>
         {worker.phone && (
           <View style={styles.infoRow}>
@@ -182,6 +189,7 @@ export function WorkerProfileView({ worker, endorsements = [], router }: { worke
         )}
       </View>
 
+      {/* Endorsements Section */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Endorsements</Text>
         {endorsements.length > 0 ? (
@@ -203,6 +211,7 @@ export function WorkerProfileView({ worker, endorsements = [], router }: { worke
         )}
       </View>
 
+      {/* Member Since Section */}
       {worker.created_at && (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Member Since</Text>
@@ -224,7 +233,11 @@ export default function WorkerProfile() {
   const router = useRouter();
   const [worker, setWorker] = useState<any>(null);
   const [endorsements, setEndorsements] = useState<any[]>([]);
+  const [experiences, setExperiences] = useState<any[]>([]);
+  const [credentials, setCredentials] = useState<any[]>([]);
+  const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expLoading, setExpLoading] = useState(false);
 
   const loadProfile = async () => {
     try {
@@ -232,14 +245,12 @@ export default function WorkerProfile() {
   const token = await getStorageItem("token");
       
       let url: string;
-      if (id) {
+      if (typeof id === 'string' && id.trim().length > 0 && id !== 'undefined' && id !== 'null') {
         url = `${API_ENDPOINTS.WORKER_PROFILE.replace('/me', '')}/${id}`;
       } else {
         url = API_ENDPOINTS.WORKER_PROFILE;
       }
-      
-      console.log("Fetching from:", url);
-      
+      console.log("[WorkerProfile] id:", id, "url:", url);
       const response = await axios.get(url, {
         headers: token ? {
           "Authorization": `Bearer ${token}`
@@ -247,8 +258,31 @@ export default function WorkerProfile() {
       });
       
       console.log("Worker profile loaded:", response.data);
-      console.log("Experiences:", response.data.experiences);
+      console.log("Experiences from API:", response.data.experiences);
+      console.log("Experiences type:", typeof response.data.experiences);
+      console.log("Experiences length:", Array.isArray(response.data.experiences) ? response.data.experiences.length : "not array");
       setWorker(response.data);
+      
+      // Use experiences from the worker profile response
+      setExpLoading(true);
+      try {
+        setExperiences(Array.isArray(response.data.experiences) ? response.data.experiences : []);
+        console.log("Experiences set from profile:", response.data.experiences);
+      } catch (expErr) {
+        console.error("Error setting experiences:", expErr);
+        setExperiences([]);
+      } finally {
+        setExpLoading(false);
+      }
+
+      // Use credentials from the worker profile response
+      try {
+        setCredentials(Array.isArray(response.data.credentials) ? response.data.credentials : []);
+        console.log("Credentials set from profile:", response.data.credentials);
+      } catch (credErr) {
+        console.error("Error setting credentials:", credErr);
+        setCredentials([]);
+      }
 
       const endorsementsUrl = `${API_ENDPOINTS.ENDORSEMENTS_FOR_WORKER}/${response.data.id}`;
       console.log("Fetching endorsements from:", endorsementsUrl);
@@ -258,9 +292,50 @@ export default function WorkerProfile() {
           "Authorization": `Bearer ${token}`
         } : {}
       });
-      
+        
       console.log("Endorsements loaded:", endorsementsResponse.data);
   setEndorsements(Array.isArray(endorsementsResponse.data) ? endorsementsResponse.data : []);
+
+      // Fetch job applications 
+      if (!id || id === 'undefined' || id === 'null') {
+        try {
+          const applicationsResponse = await axios.get(`${API_ENDPOINTS.JOB_APPLICATIONS_WORKER}`, {
+            headers: token ? {
+              "Authorization": `Bearer ${token}`
+            } : {}
+          });
+          
+          let appsData = Array.isArray(applicationsResponse.data) ? applicationsResponse.data : [];
+          
+          // Fetch full job details for each application
+          if (appsData.length > 0) {
+            appsData = await Promise.all(
+              appsData.map(async (app: any) => {
+                if (app.job_post_id) {
+                  try {
+                    const jobRes = await axios.get(`${API_ENDPOINTS.JOB_GET}/${app.job_post_id}`, {
+                      headers: token ? {
+                        "Authorization": `Bearer ${token}`
+                      } : {}
+                    });
+                    return { ...app, job_post: jobRes.data };
+                  } catch (err) {
+                    console.warn(`Failed to fetch job ${app.job_post_id}:`, err);
+                    return app;
+                  }
+                }
+                return app;
+              })
+            );
+          }
+          
+          setApplications(appsData);
+          console.log("Applications loaded with job details:", appsData);
+        } catch (appError: any) {
+          console.warn("Error loading applications:", appError?.message);
+          setApplications([]);
+        }
+      }
     } catch (error: any) {
       console.error("Error loading worker profile:", error?.response?.data || error);
       const errorMsg = error?.response?.data?.detail || "Could not load profile. Please try again.";
@@ -268,6 +343,36 @@ export default function WorkerProfile() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogout = async () => {
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to logout?",
+      [
+        { text: "Cancel", onPress: () => {}, style: "cancel" },
+        {
+          text: "Logout",
+          onPress: async () => {
+            try {
+              if (Platform.OS === "web") {
+                window.localStorage.removeItem("token");
+                window.localStorage.removeItem("userType");
+              } else {
+                await AsyncStorage.removeItem("token");
+                await AsyncStorage.removeItem("userType");
+              }
+              // Navigate to login
+              router.replace("/(tabs)/login");
+            } catch (error) {
+              console.error("Logout error:", error);
+              Alert.alert("Error", "Failed to logout");
+            }
+          },
+          style: "destructive",
+        },
+      ]
+    );
   };
 
   useEffect(() => {
@@ -279,6 +384,7 @@ export default function WorkerProfile() {
       loadProfile();
     }, [id])
   );
+
 
   if (loading) {
     return (
@@ -300,19 +406,257 @@ export default function WorkerProfile() {
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backButton}>‹</Text>
+        <TouchableOpacity onPress={handleLogout} style={styles.headerButton}>
+          <Text style={styles.backButton}>⏻</Text>
         </TouchableOpacity>
         <Image
           source={require("../../assets/images/MedPost-Icon.png")}
           style={styles.headerLogo}
         />
-        <View style={styles.headerSpacer} />
+        <View style={styles.headerButton} />
       </View>
       <View style={{ flex: 1, backgroundColor: '#fff' }}>
         <ScrollView style={styles.container}>
-          <WorkerProfileView worker={worker} endorsements={endorsements} router={router} />
+          {/* Profile Card and Info */}
+          <View style={styles.headerCard}>
+            {worker.profile_image_url ? (
+              <Image
+                source={{ uri: worker.profile_image_url }}
+                style={styles.profileImage}
+              />
+            ) : (
+              <View style={[styles.profileImage, styles.placeholderImage]}>
+                <Text style={styles.placeholderText}>
+                  {worker.full_name?.charAt(0) || "?"}
+                </Text>
+              </View>
+            )}
+            <Text style={styles.name}>{worker.full_name || "Unknown"}</Text>
+            <View style={styles.titleBadge}>
+              <Text style={styles.titleText}>{worker.title || "Healthcare Professional"}</Text>
+            </View>
+          </View>
 
+          {/* About Section */}
+          {worker.bio && (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>About</Text>
+              <Text style={styles.bioText}>{worker.bio}</Text>
+            </View>
+          )}
+
+          {/* Professional Information */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Professional Information</Text>
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Title:</Text>
+              <Text style={styles.value}>{worker.title || "Not specified"}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Education:</Text>
+              <Text style={styles.value}>{worker.education_level || "Not specified"}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Verification Status:</Text>
+              {(worker.verification_status === 'VERIFIED' || worker.verification_status === 'COMPLETED') ? (
+                <View style={[styles.statusBadge, styles.verifiedBadge]}>
+                  <Text style={[styles.statusText, { color: '#155724' }]}>Verified</Text>
+                </View>
+              ) : worker.verification_status === 'PENDING' ? (
+                <View style={[styles.statusBadge, styles.pendingBadge]}>
+                  <Text style={[styles.statusText, { color: '#856404' }]}>Under Review</Text>
+                </View>
+              ) : (
+                <View style={[styles.statusBadge, styles.unverifiedBadge]}>
+                  <Text style={[styles.statusText, { color: '#721c24' }]}>Pending</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Location Section */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Location</Text>
+            <View style={styles.locationContainer}>
+              <Text style={styles.locationIcon}>📍</Text>
+              <View style={styles.locationDetails}>
+                <Text style={styles.locationText}>
+                  {worker.city || "City not specified"}
+                  {worker.city && worker.state_province ? ", " : ""}
+                  {worker.state_province || ""}
+                </Text>
+                {worker.postal_code && (
+                  <Text style={styles.postalText}>Postal Code: {worker.postal_code}</Text>
+                )}
+              </View>
+            </View>
+          </View>
+
+          {/* Resume Section */}
+          {worker.resume_url && (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Resume</Text>
+              <TouchableOpacity 
+                style={styles.resumeButton}
+                onPress={() => Linking.openURL(worker.resume_url)}
+              >
+                <Text style={styles.resumeButtonText}>View Resume</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+                    <View style={styles.card}>
+            <View style={styles.experienceHeaderContainer}>
+              <Text style={styles.cardTitle}>Experience</Text>
+              <TouchableOpacity 
+                style={styles.addExperienceButton}
+                onPress={() => router.push('/(tabs)/worker-experience')}
+              >
+                <Text style={styles.addExperienceButtonText}>+ Add Experience</Text>
+              </TouchableOpacity>
+            </View>
+            {expLoading ? (
+              <Text style={styles.noExperience}>Loading...</Text>
+            ) : experiences && experiences.length > 0 ? (
+              experiences.map((exp: any) => (
+                <View key={exp.id} style={styles.experienceItem}>
+                  <Text style={styles.experiencePosition}>{exp.position_title}</Text>
+                  <Text style={styles.experienceCompany}>{exp.company_name}</Text>
+                  <Text style={styles.experienceDate}>
+                    {formatDateDisplay(exp.start_date)} - {exp.end_date ? formatDateDisplay(exp.end_date) : 'Present'}
+                  </Text>
+                  {exp.description && (
+                    <Text style={styles.experienceDescription}>{exp.description}</Text>
+                  )}
+                </View>
+              ))
+            ) : (
+              <Text style={styles.noExperience}>No experience added yet.</Text>
+            )}
+          </View>
+
+          {/* Contact Information */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Contact Information</Text>
+            {worker.email && (
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>Email:</Text>
+                <Text style={styles.value}>{worker.email}</Text>
+              </View>
+            )}
+            {worker.phone && (
+              <View style={styles.infoRow}>
+                <Text style={styles.label}>Phone:</Text>
+                <Text style={styles.value}>{worker.phone}</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Endorsements Section */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Endorsements</Text>
+            {endorsements.length > 0 ? (
+              endorsements.map((endorsement: any) => (
+                <View key={endorsement.id} style={styles.endorsementItem}>
+                  <Text style={styles.endorsementFacility}>
+                    {endorsement.facility_name || "Healthcare Facility"}
+                  </Text>
+                  {endorsement.note && (
+                    <Text style={styles.endorsementNote}>{endorsement.note}</Text>
+                  )}
+                  <Text style={styles.endorsementDate}>
+                    {new Date(endorsement.created_at).toLocaleDateString()}
+                  </Text>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.noEndorsements}>No endorsements yet</Text>
+            )}
+          </View>
+
+          {/* Job Applications Section */}
+          {applications && applications.length > 0 && (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Job Applications</Text>
+              {applications.map((app: any) => {
+                const job = app.job_post || {};
+                let min, max;
+                if (job.compensation_type === 'HOURLY') {
+                  min = job.hourly_min;
+                  max = job.hourly_max;
+                } else if (job.compensation_type === 'MONTHLY') {
+                  min = job.monthly_min;
+                  max = job.monthly_max;
+                } else if (job.compensation_type === 'YEARLY') {
+                  min = job.yearly_min;
+                  max = job.yearly_max;
+                }
+                
+                return (
+                  <View key={app.id} style={styles.applicationItem}>
+                    <View style={styles.applicationHeader}>
+                      <Text style={styles.applicationJobTitle}>
+                        {job.position_title || "Job Position"}
+                      </Text>
+                      <View style={[styles.statusBadge, getApplicationStatusStyle(app.status)]}>
+                        <Text style={[styles.statusText, getApplicationStatusTextColor(app.status)]}>
+                          {app.status}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {job.legal_name && (
+                      <Text style={styles.applicationFacility}>
+                        {job.legal_name}
+                      </Text>
+                    )}
+
+                    <Text style={styles.jobDetail}>
+                      {job.employment_type ? job.employment_type.replace("_", " ") : "N/A"} • {job.compensation_type || "N/A"}
+                    </Text>
+
+                    {(min || max) && (
+                      <Text style={styles.compensationDisplay}>
+                        ${min}
+                        {max && min !== max ? ` - $${max}` : ""}
+                      </Text>
+                    )}
+
+                    {job.city && job.state_province && (
+                      <Text style={styles.jobLocation}>📍 {job.city}, {job.state_province}</Text>
+                    )}
+
+                    {job.description && (
+                      <Text style={styles.jobDescription} numberOfLines={2}>
+                        {job.description}
+                      </Text>
+                    )}
+
+                    <Text style={styles.applicationDate}>
+                      Applied: {new Date(app.created_at).toLocaleDateString()}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+
+          {/* Member Since Section */}
+          {worker.created_at && (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Member Since</Text>
+              <Text style={styles.dateText}>
+                {new Date(worker.created_at).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </Text>
+            </View>
+          )}
+
+
+          {/* Update Profile Button */}
           <TouchableOpacity 
             style={styles.updateProfileButton}
             onPress={() => router.push('/(tabs)/worker-update')}
@@ -342,10 +686,13 @@ const styles = StyleSheet.create({
     borderBottomColor: "#00ced1",
   },
   backButton: {
-    fontSize: 32,
+    fontSize: 20,
     color: "#fff",
     fontWeight: "300",
     paddingHorizontal: 8,
+  },
+  headerButton: {
+    width: 60,
   },
   headerTitle: {
     fontSize: 18,
@@ -419,7 +766,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#00ced1"
+    borderColor: "#00ced1",
+    alignContent: "center",
   },
   titleText: {
     color: "#00ced1",
@@ -535,6 +883,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 12,
   },
+  experienceHeaderContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
   experiencePosition: {
     fontSize: 16,
     fontWeight: "600",
@@ -566,11 +920,11 @@ const styles = StyleSheet.create({
   },
   addExperienceButton: {
     backgroundColor: "#00ced1",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
     alignItems: "center",
-    marginTop: 12,
+    justifyContent: "center",
   },
   addExperienceButtonText: {
     color: "#fff",
@@ -615,6 +969,127 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
 
+  credentialItem: {
+    backgroundColor: "#f8f9fa",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  credentialName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#2c3e50",
+    marginBottom: 4,
+  },
+  credentialOrganization: {
+    fontSize: 14,
+    color: "#00ced1",
+    marginBottom: 4,
+    fontWeight: "500",
+  },
+  credentialDate: {
+    fontSize: 12,
+    color: "#999",
+    marginBottom: 4,
+  },
+  credentialId: {
+    fontSize: 12,
+    color: "#666",
+  },
+  noCredentials: {
+    fontSize: 14,
+    color: "#999",
+    fontStyle: "italic",
+    textAlign: "center",
+    paddingVertical: 16,
+  },
+  addCredentialsButton: {
+    backgroundColor: "#00ced1",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 12,
+  },
+  addCredentialsButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  documentLink: {
+    marginTop: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: "#e3f2fd",
+    borderRadius: 6,
+    alignItems: "center",
+  },
+  documentLinkText: {
+    color: "#1976d2",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  applicationItem: {
+    backgroundColor: "#f8f9fa",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  applicationHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 8,
+  },
+  applicationJobTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#2c3e50",
+    flex: 1,
+    marginRight: 8,
+    lineHeight: 22,
+  },
+  applicationFacility: {
+    fontSize: 14,
+    color: "#666",
+    fontWeight: "500",
+    marginBottom: 6,
+  },
+  jobDetail: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 6,
+    lineHeight: 20,
+  },
+  jobLocation: {
+    fontSize: 14,
+    color: "#00ced1",
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  jobDescription: {
+    fontSize: 14,
+    color: "#555",
+    marginBottom: 10,
+    lineHeight: 20,
+  },
+  compensationDisplay: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#00ced1",
+    marginBottom: 8,
+    lineHeight: 22,
+  },
+  applicationDate: {
+    fontSize: 12,
+    color: "#999",
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#f0f0f0",
+  },
+
   dateText: {
     fontSize: 16,
     color: "#666",
@@ -635,7 +1110,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-
   errorText: { 
     fontSize: 18, 
     fontWeight: "bold", 
