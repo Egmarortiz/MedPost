@@ -13,6 +13,7 @@ import {
   SafeAreaView,
 } from "react-native";
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { API_ENDPOINTS } from "../../config/api";
 
@@ -48,7 +49,13 @@ export default function AdminVerificationScreen() {
   const fetchPendingVerifications = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(API_ENDPOINTS.ADMIN_PENDING_VERIFICATIONS);
+      const token = await AsyncStorage.getItem("token");
+      
+      const response = await axios.get(API_ENDPOINTS.ADMIN_PENDING_VERIFICATIONS, {
+        headers: token ? {
+          "Authorization": `Bearer ${token}`
+        } : {}
+      });
       setVerifications(Array.isArray(response.data) ? response.data : []);
     } catch (error: any) {
       console.error("Failed to fetch verifications:", error);
@@ -93,14 +100,26 @@ export default function AdminVerificationScreen() {
               console.log("Has approved?", "approved" in payload);
               console.log("approved value:", payload.approved);
               
-              const response = await axios.post(API_ENDPOINTS.ADMIN_APPROVE_VERIFICATION, payload);
+              const token = await AsyncStorage.getItem("token");
+              const response = await axios.post(API_ENDPOINTS.ADMIN_APPROVE_VERIFICATION, payload, {
+                headers: token ? {
+                  "Authorization": `Bearer ${token}`
+                } : {}
+              });
               console.log("Axios payload sent:", payload);
               console.log("Response status:", response.status);
               console.log("Response data:", response.data);
               console.log("=== END APPROVE ===");
               
               Alert.alert("Success", `${fullName} has been verified!`);
-              fetchPendingVerifications();
+              // Update status and then remove card from page after approval
+              setVerifications(verifications.map(v => 
+                (v.worker_id ? v.worker_id === id : v.facility_id === id)
+                  ? { ...v, verification_status: "APPROVED" }
+                  : v
+              ).filter(v => 
+                (v.worker_id ? v.worker_id !== id : v.facility_id !== id)
+              ));
             } catch (error: any) {
               console.log("=== APPROVE ERROR ===");
               console.log("Error message:", error.message);
@@ -129,9 +148,14 @@ export default function AdminVerificationScreen() {
           onPress: async () => {
             try {
               setProcessing(id);
+              const token = await AsyncStorage.getItem("token");
               await axios.post(API_ENDPOINTS.ADMIN_APPROVE_VERIFICATION, {
                 [isWorker ? "worker_id" : "facility_id"]: id,
                 approved: false,
+              }, {
+                headers: token ? {
+                  "Authorization": `Bearer ${token}`
+                } : {}
               });
               Alert.alert("Rejected", `${fullName}'s verification was rejected`);
               fetchPendingVerifications();
@@ -158,9 +182,14 @@ export default function AdminVerificationScreen() {
           onPress: async () => {
             try {
               setProcessing(id);
+              const token = await AsyncStorage.getItem("token");
               await axios.post(API_ENDPOINTS.ADMIN_APPROVE_VERIFICATION, {
                 [isWorker ? "worker_id" : "facility_id"]: id,
                 approved: "under_review",
+              }, {
+                headers: token ? {
+                  "Authorization": `Bearer ${token}`
+                } : {}
               });
               Alert.alert("Success", `${fullName} is now under review`);
               fetchPendingVerifications();
@@ -226,7 +255,6 @@ export default function AdminVerificationScreen() {
             </Text>
           </View>
 
-          {/* FACILITIES SECTION */}
           {facilities.length > 0 && (
             <View>
               <Text style={styles.sectionHeader}>Facilities ({facilities.length})</Text>
@@ -303,15 +331,6 @@ export default function AdminVerificationScreen() {
                         >
                           <Text style={styles.buttonText}>
                             {processing === verification.facility_id ? "..." : "Approve"}
-                          </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[styles.button, styles.underReviewButton]}
-                          onPress={() => handleUnderReview(verification.facility_id!, verification.legal_name!, false)}
-                          disabled={processing === verification.facility_id}
-                        >
-                          <Text style={styles.buttonText}>
-                            {processing === verification.facility_id ? "..." : "Under Review"}
                           </Text>
                         </TouchableOpacity>
                       </>
