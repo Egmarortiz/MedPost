@@ -76,8 +76,8 @@ const JobPostForm: React.FC<JobPostFormProps> = ({
   const [statusOpen, setStatusOpen] = useState(false);
 
   const employmentOptions = [
-    { label: "Full Time", value: "FULL_TIME" },
-    { label: "Part Time", value: "PART_TIME" },
+    { label: "Full Time", value: "FULL TIME" },
+    { label: "Part Time", value: "PART TIME" },
   ];
 
   const compensationOptions = [

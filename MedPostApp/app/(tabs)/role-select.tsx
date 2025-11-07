@@ -31,7 +31,7 @@ export default function RoleSelect() {
         <FontAwesome6
           name="hospital"
           size={30}
-          color="black"
+          color="#2c3e50"
           style={styles.icon}
         />
         <Text style={styles.buttonText}>I&apos;m a Hiring Facility</Text>
@@ -44,7 +44,7 @@ export default function RoleSelect() {
         <FontAwesome6
           name="hand-holding-medical"
           size={30}
-          color="black"
+          color="#2c3e50"
           style={styles.icon}
         />
         <Text style={styles.buttonText}>I&apos;m a Job Seeker</Text>
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "bold",
     color: "#fff",
-    marginBottom: 4,
+    marginBottom: 10,
     textAlign: "center",
   },
   button: {
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     width: "60%",
   },
   buttonText: {
-    color: "black",
+    color: "#2c3e50",
     fontSize: 14,
     fontWeight: "600",
   },

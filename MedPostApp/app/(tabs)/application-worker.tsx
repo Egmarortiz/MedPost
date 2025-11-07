@@ -40,7 +40,7 @@ export default function WorkerApplicationPage() {
         const token = await AsyncStorage.getItem("token");
         
         // Fetch job details
-        const jobRes = await axios.get(`${API_ENDPOINTS.JOB_GET}/${jobId}`, {
+        const jobRes = await axios.get(`${API_ENDPOINTS.JOB_GET}${jobId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setJob(jobRes.data);
@@ -105,11 +105,11 @@ export default function WorkerApplicationPage() {
       };
 
       // Debug, log payload and endpoint
-      console.log('Submitting application to:', `${API_ENDPOINTS.JOB_APPLY}/${jobId}/apply`);
+      console.log('Submitting application to:', `${API_ENDPOINTS.JOB_APPLY}${jobId}/apply`);
       console.log('Payload:', payload);
 
       const response = await axios.post(
-        `${API_ENDPOINTS.JOB_APPLY}/${jobId}/apply`,
+        `${API_ENDPOINTS.JOB_APPLY}${jobId}/apply`,
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );

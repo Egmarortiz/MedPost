@@ -18,6 +18,33 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import BottomTab from "../../components/BottomTab";
 import { API_BASE_URL } from "../../config/api";
 
+const formatDateDisplay = (dateString: string | null | undefined): string => {
+  if (!dateString) return "";
+  try {
+    const d = new Date(dateString);
+    if (!isNaN(d.getTime())) {
+      const monthNames = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+      ];
+      return `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+    }
+    const parts = String(dateString).split("-");
+    if (parts.length >= 2) {
+      const year = parts[0];
+      const monthIndex = Math.max(0, Math.min(11, parseInt(parts[1], 10) - 1));
+      const monthNames = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+      ];
+      return `${monthNames[monthIndex]} ${year}`;
+    }
+    return dateString;
+  } catch {
+    return String(dateString);
+  }
+};
+
 export default function WorkerDetailPage() {
   const { workerId } = useLocalSearchParams();
   const [worker, setWorker] = useState<any>(null);
@@ -267,7 +294,7 @@ export default function WorkerDetailPage() {
                   <Text style={styles.experiencePosition}>{exp.position_title}</Text>
                   <Text style={styles.experienceCompany}>{exp.company_name}</Text>
                   <Text style={styles.experienceDate}>
-                    {exp.start_date} - {exp.end_date ? exp.end_date : 'Present'}
+                    {formatDateDisplay(exp.start_date)} - {exp.end_date ? formatDateDisplay(exp.end_date) : 'Present'}
                   </Text>
                   {exp.description && (
                     <Text style={styles.experienceDescription}>{exp.description}</Text>

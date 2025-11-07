@@ -347,53 +347,64 @@ export default function FacilityProfile() {
       });
       setFacility(response.data);
 
-      const jobsResponse = await axios.get(API_ENDPOINTS.JOBS_LIST, {
-        headers: storageToken ? { Authorization: `Bearer ${storageToken}` } : {},
-      });
-      const facilityJobs = Array.isArray(jobsResponse.data)
-        ? jobsResponse.data.filter((job: any) => job.facility_id === response.data.id)
-        : [];
-      setJobs(facilityJobs || []);
+      // Try to fetch jobs but don't fail if it errors
+      try {
+        const jobsResponse = await axios.get(API_ENDPOINTS.JOBS_LIST, {
+          headers: storageToken ? { Authorization: `Bearer ${storageToken}` } : {},
+        });
+        const facilityJobs = Array.isArray(jobsResponse.data)
+          ? jobsResponse.data.filter((job: any) => job.facility_id === response.data.id)
+          : [];
+        setJobs(facilityJobs || []);
+      } catch (jobsErr) {
+        console.warn("Failed to load jobs:", jobsErr);
+        setJobs([]);
+      }
 
       // Fetch job applications for this facility
-      const appsResponse = await axios.get(API_ENDPOINTS.JOB_APPLICATIONS_FACILITY, {
-        headers: storageToken ? { Authorization: `Bearer ${storageToken}` } : {},
-      });
-      
-      // Fetch worker details for each application
-      let appsWithWorkers = Array.isArray(appsResponse.data) ? appsResponse.data : [];
-      if (appsWithWorkers.length > 0) {
-        appsWithWorkers = await Promise.all(
-          appsWithWorkers.map(async (app: any) => {
-            let appData = { ...app };
-            
-            if (app.worker_id) {
-              try {
-                const workerRes = await axios.get(`${API_ENDPOINTS.WORKERS_LIST}${app.worker_id}`, {
-                  headers: storageToken ? { Authorization: `Bearer ${storageToken}` } : {},
-                });
-                appData.worker = workerRes.data;
-              } catch (err) {
-                console.warn(`Failed to fetch worker ${app.worker_id}:`, err);
+      let appsWithWorkers: any[] = [];
+      try {
+        const appsResponse = await axios.get(API_ENDPOINTS.JOB_APPLICATIONS_FACILITY, {
+          headers: storageToken ? { Authorization: `Bearer ${storageToken}` } : {},
+        });
+        
+        // Fetch worker details for each application
+        appsWithWorkers = Array.isArray(appsResponse.data) ? appsResponse.data : [];
+        if (appsWithWorkers.length > 0) {
+          appsWithWorkers = await Promise.all(
+            appsWithWorkers.map(async (app: any) => {
+              let appData = { ...app };
+              
+              if (app.worker_id) {
+                try {
+                  const workerRes = await axios.get(`${API_ENDPOINTS.WORKERS_LIST}/${app.worker_id}`, {
+                    headers: storageToken ? { Authorization: `Bearer ${storageToken}` } : {},
+                  });
+                  appData.worker = workerRes.data;
+                } catch (err) {
+                  console.warn(`Failed to fetch worker ${app.worker_id}:`, err);
+                }
               }
-            }
             
-            // Fetch job posting details
-            if (app.job_post_id) {
-              try {
-                const jobRes = await axios.get(`${API_ENDPOINTS.JOBS_LIST}${app.job_post_id}`, {
-                  headers: storageToken ? { Authorization: `Bearer ${storageToken}` } : {},
-                });
-                appData.job_post = jobRes.data;
-                appData.position_title = jobRes.data.position_title;
-              } catch (err) {
-                console.warn(`Failed to fetch job posting ${app.job_post_id}:`, err);
+              // Fetch job posting details
+              if (app.job_post_id) {
+                try {
+                  const jobRes = await axios.get(`${API_ENDPOINTS.JOBS_LIST}${app.job_post_id}`, {
+                    headers: storageToken ? { Authorization: `Bearer ${storageToken}` } : {},
+                  });
+                  appData.job_post = jobRes.data;
+                  appData.position_title = jobRes.data.position_title;
+                } catch (err) {
+                  console.warn(`Failed to fetch job posting ${app.job_post_id}:`, err);
+                }
               }
-            }
-            
-            return appData;
-          })
-        );
+              
+              return appData;
+            })
+          );
+        }
+      } catch (appsErr) {
+        console.warn("Failed to load applications:", appsErr);
       }
       setApplications(appsWithWorkers);
 
@@ -404,6 +415,8 @@ export default function FacilityProfile() {
       }
     } catch (error: any) {
       console.error("Error loading facility profile:", error?.response?.data || error);
+      console.error("Error response:", JSON.stringify(error?.response, null, 2));
+      console.error("Error status:", error?.response?.status);
       const errorMsg = error?.response?.data?.detail || "Could not load profile. Please try again.";
       Alert.alert("Error", errorMsg);
     } finally {

@@ -39,8 +39,12 @@ export default function Login() {
   const navigation = useNavigation();
   const router = useRouter();
   const [loginType, setLoginType] = React.useState<"worker" | "facility">("worker");
+  const [isLoading, setIsLoading] = React.useState(false);
 
   const handleLogin = async (values: any) => {
+    if (isLoading) return; // Prevent multiple submissions
+    setIsLoading(true);
+    
     try {
       const endpoint = loginType === "worker" 
         ? API_ENDPOINTS.WORKER_LOGIN
@@ -82,6 +86,8 @@ export default function Login() {
       console.error("Login error:", error?.response?.data || error);
       const errorMessage = error?.response?.data?.detail || error?.message || "Login failed. Please try again.";
       Alert.alert("Login Failed", errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -167,15 +173,16 @@ export default function Login() {
                 value={values.password}
               />
             </View>
+            
             {errors.password && touched.password && (
               <Text style={styles.errorText}>{errors.password}</Text>
             )}
             <TouchableOpacity
-              style={styles.button}
+              style={[styles.button, isLoading && { opacity: 0.5 }]}
               onPress={handleSubmit}
-              disabled={!isValid}
+              disabled={!isValid || isLoading}
             >
-              <Text style={styles.buttonText}>Login</Text>
+              <Text style={styles.buttonText}>{isLoading ? "Logging in..." : "Login"}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.registerButton}

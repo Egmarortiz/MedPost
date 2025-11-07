@@ -34,13 +34,14 @@ export const API_ENDPOINTS = {
   FACILITIES_LIST: `${API_BASE_URL}/v1/facilities`,
   
   // Jobs
-  JOBS_LIST: `${API_BASE_URL}/v1/jobs`,
-  JOB_CREATE: `${API_BASE_URL}/v1/jobs`,
-  JOB_GET: `${API_BASE_URL}/v1/jobs`,
-  JOB_UPDATE: `${API_BASE_URL}/v1/jobs`,
-  JOB_APPLY: `${API_BASE_URL}/v1/jobs`,
+  JOBS_LIST: `${API_BASE_URL}/v1/jobs/`,
+  JOB_CREATE: `${API_BASE_URL}/v1/jobs/`,
+  JOB_GET: `${API_BASE_URL}/v1/jobs/`,
+  JOB_UPDATE: `${API_BASE_URL}/v1/jobs/`,
+  JOB_APPLY: `${API_BASE_URL}/v1/jobs/`,
   JOB_APPLICATIONS_FACILITY: `${API_BASE_URL}/v1/jobs/applications/facility`,
   JOB_APPLICATIONS_WORKER: `${API_BASE_URL}/v1/jobs/applications/worker`,
+  JOB_APPLICATION_UPDATE_STATUS: `${API_BASE_URL}/v1/jobs/applications`,
   
   // Endorsements
   ENDORSEMENTS_FOR_WORKER: `${API_BASE_URL}/v1/endorsements/workers`,

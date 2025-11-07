@@ -313,12 +313,24 @@ export default function WorkerProfile() {
               appsData.map(async (app: any) => {
                 if (app.job_post_id) {
                   try {
-                    const jobRes = await axios.get(`${API_ENDPOINTS.JOB_GET}/${app.job_post_id}`, {
+                    const jobRes = await axios.get(`${API_ENDPOINTS.JOB_GET}${app.job_post_id}`, {
                       headers: token ? {
                         "Authorization": `Bearer ${token}`
                       } : {}
                     });
-                    return { ...app, job_post: jobRes.data };
+                    let job = jobRes.data;
+                    // Also fetch facility details
+                    try {
+                      if (job?.facility_id) {
+                        const facRes = await axios.get(`${API_ENDPOINTS.FACILITIES_LIST}/${job.facility_id}`, {
+                          headers: token ? { "Authorization": `Bearer ${token}` } : {}
+                        });
+                        job = { ...job, legal_name: facRes.data?.legal_name, facility: facRes.data };
+                      }
+                    } catch (facErr) {
+                      console.warn(`Failed to fetch facility for job ${app.job_post_id}:`, facErr);
+                    }
+                    return { ...app, job_post: job };
                   } catch (err) {
                     console.warn(`Failed to fetch job ${app.job_post_id}:`, err);
                     return app;
@@ -591,7 +603,6 @@ export default function WorkerProfile() {
                   min = job.yearly_min;
                   max = job.yearly_max;
                 }
-                
                 return (
                   <View key={app.id} style={styles.applicationItem}>
                     <View style={styles.applicationHeader}>
@@ -604,34 +615,29 @@ export default function WorkerProfile() {
                         </Text>
                       </View>
                     </View>
-
+                    {/* Facility Name */}
                     {job.legal_name && (
                       <Text style={styles.applicationFacility}>
                         {job.legal_name}
                       </Text>
                     )}
-
                     <Text style={styles.jobDetail}>
                       {job.employment_type ? job.employment_type.replace("_", " ") : "N/A"} • {job.compensation_type || "N/A"}
                     </Text>
-
                     {(min || max) && (
                       <Text style={styles.compensationDisplay}>
                         ${min}
                         {max && min !== max ? ` - $${max}` : ""}
                       </Text>
                     )}
-
                     {job.city && job.state_province && (
                       <Text style={styles.jobLocation}>📍 {job.city}, {job.state_province}</Text>
                     )}
-
                     {job.description && (
                       <Text style={styles.jobDescription} numberOfLines={2}>
                         {job.description}
                       </Text>
                     )}
-
                     <Text style={styles.applicationDate}>
                       Applied: {new Date(app.created_at).toLocaleDateString()}
                     </Text>
