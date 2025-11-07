@@ -2,6 +2,13 @@ fastapi[standard]
 strawberry-graphql[fastapi]
 strawberry-graphql[debug-server]
 pydantic
+pydantic-settings
 starlette
 uvicorn
 sqlalchemy
+alembic
+sentence-transformers
+pyjwt 
+python-jose[cryptography]
+psycopg2-binary
+passlib[bcrypt]

@@ -12,7 +12,7 @@ from app.core.security import TokenPayload, get_subject
 from app.models import UserRole
 from app.schemas import FacilityCertificationCreate, FacilityCertificationRead
 from app.services.facilities_service import (
-    FacilityCertificationAlreadyExistsError,
+    FacilityCertificationExists,
     FacilitiesService,
 )
 
@@ -70,7 +70,7 @@ def create_certification(
     facility_id = _get_facility_id(service, current_user)
     try:
         certification = service.create_certification(facility_id, payload)
-    except FacilityCertificationAlreadyExistsError:
+    except FacilityCertificationExists:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Certification has already been submitted for this facility",

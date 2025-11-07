@@ -31,7 +31,33 @@ def register_worker(
     service: AuthService = Depends(get_auth_service),
 ) -> TokenPair:
     ip_address, user_agent = _client_context(request)
-    return service.register_worker(payload, ip_address=ip_address, user_agent=user_agent)
+    token_pair = service.register_worker(payload, ip_address=ip_address, user_agent=user_agent)
+    
+    print("\n=== DEBUG TOKEN PAIR ===")
+    print(f"Type: {type(token_pair)}")
+    print(f"access_token: {token_pair.access_token[:20]}...")
+    print(f"user_id: {token_pair.user_id}")
+    print(f"role: {token_pair.role} (type: {type(token_pair.role)})")
+    print(f"worker_id: {token_pair.worker_id}")
+    print(f"expires_at: {token_pair.expires_at} (type: {type(token_pair.expires_at)})")
+    print(f"refresh_expires_at: {token_pair.refresh_expires_at}")
+    
+    # Try to serialize it
+    try:
+        dict_form = token_pair.model_dump()
+        print(f"model_dump() succeeded: {dict_form.keys()}")
+    except Exception as e:
+        print(f"model_dump() ERROR: {e}")
+    
+    try:
+        json_form = token_pair.model_dump_json()
+        print(f"model_dump_json() succeeded, length: {len(json_form)}")
+    except Exception as e:
+        print(f"model_dump_json() ERROR: {e}")
+    
+    print("=== END DEBUG ===\n")
+    
+    return token_pair
 
 
 @router.post("/worker/login", response_model=TokenPair)

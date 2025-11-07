@@ -72,7 +72,19 @@ def list_worker_endorsements(
     endorsements = service.list_for_worker(worker_id)
     if endorsements is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Worker not found")
-    return [EndorsementRead.from_orm(endorsement) for endorsement in endorsements]
+    
+    result = []
+    for endorsement in endorsements:
+        result.append(EndorsementRead(
+            id=endorsement.id,
+            worker_id=endorsement.worker_id,
+            facility_id=endorsement.facility_id,
+            facility_name=endorsement.facility.legal_name if endorsement.facility else "Unknown Facility",
+            note=endorsement.note,
+            has_badge=endorsement.has_badge,
+            created_at=endorsement.created_at,
+        ))
+    return result
 
 
 @router.get("/facilities/{facility_id}", response_model=List[EndorsementRead])
@@ -84,7 +96,19 @@ def list_facility_endorsements(
     endorsements = service.list_for_facility(facility_id)
     if endorsements is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Facility not found")
-    return [EndorsementRead.from_orm(endorsement) for endorsement in endorsements]
+    
+    result = []
+    for endorsement in endorsements:
+        result.append(EndorsementRead(
+            id=endorsement.id,
+            worker_id=endorsement.worker_id,
+            facility_id=endorsement.facility_id,
+            facility_name=endorsement.facility.legal_name if endorsement.facility else "Unknown Facility",
+            note=endorsement.note,
+            has_badge=endorsement.has_badge,
+            created_at=endorsement.created_at,
+        ))
+    return result
 
 
 @router.post("/", response_model=EndorsementRead, status_code=status.HTTP_201_CREATED)
@@ -103,7 +127,16 @@ def create_endorsement(
         )
     if not endorsement:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Worker not found")
-    return EndorsementRead.from_orm(endorsement)
+    
+    return EndorsementRead(
+        id=endorsement.id,
+        worker_id=endorsement.worker_id,
+        facility_id=endorsement.facility_id,
+        facility_name=endorsement.facility.legal_name if endorsement.facility else "Unknown Facility",
+        note=endorsement.note,
+        has_badge=endorsement.has_badge,
+        created_at=endorsement.created_at,
+    )
 
 
 @router.put("/{endorsement_id}", response_model=EndorsementRead)
@@ -117,7 +150,15 @@ def replace_endorsement(
     endorsement = service.update_endorsement(endorsement_id, facility_id, payload)
     if not endorsement:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Endorsement not found")
-    return EndorsementRead.from_orm(endorsement)
+    return EndorsementRead(
+        id=endorsement.id,
+        worker_id=endorsement.worker_id,
+        facility_id=endorsement.facility_id,
+        facility_name=endorsement.facility.legal_name if endorsement.facility else "Unknown Facility",
+        note=endorsement.note,
+        has_badge=endorsement.has_badge,
+        created_at=endorsement.created_at,
+    )
 
 
 @router.patch("/{endorsement_id}", response_model=EndorsementRead)
@@ -131,7 +172,15 @@ def update_endorsement(
     endorsement = service.update_endorsement(endorsement_id, facility_id, payload)
     if not endorsement:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Endorsement not found")
-    return EndorsementRead.from_orm(endorsement)
+    return EndorsementRead(
+        id=endorsement.id,
+        worker_id=endorsement.worker_id,
+        facility_id=endorsement.facility_id,
+        facility_name=endorsement.facility.legal_name if endorsement.facility else "Unknown Facility",
+        note=endorsement.note,
+        has_badge=endorsement.has_badge,
+        created_at=endorsement.created_at,
+    )
 
 
 @router.delete("/{endorsement_id}", status_code=status.HTTP_204_NO_CONTENT)

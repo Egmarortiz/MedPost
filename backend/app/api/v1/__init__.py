@@ -3,16 +3,20 @@
 from fastapi import APIRouter
 
 from .routers import (
+    admin,
     auth,
     endorsements,
     facility_certifications,
     facilities,
     jobs,
+    upload,
     workers,
 )
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth")
+api_router.include_router(upload.router, prefix="/upload")
+api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
 api_router.include_router(workers.router, prefix="/workers", tags=["workers"])
 api_router.include_router(facilities.router, prefix="/facilities", tags=["facilities"])
 api_router.include_router(

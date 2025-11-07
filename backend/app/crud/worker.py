@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Worker CRUD functions"""
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from uuid import UUID
 from app.models.worker import Worker, Experience, WorkerCredential
 from ..schemas.worker import (
@@ -16,7 +16,10 @@ def create_worker(db: Session, worker_in: WorkerCreate) -> Worker:
     return db_worker
 
 def get_worker(db: Session, worker_id: UUID) -> Worker | None:
-    return db.query(Worker).filter(Worker.id == worker_id).first()
+    return db.query(Worker).options(
+        joinedload(Worker.user),
+        joinedload(Worker.experiences)
+    ).filter(Worker.id == worker_id).first()
 
 def update_worker(db: Session, worker_id: UUID, worker_in: WorkerUpdate) -> Worker | None:
     db_worker = get_worker(db, worker_id)
@@ -37,6 +40,13 @@ def delete_worker(db: Session, worker_id: UUID) -> bool:
     return True
 
 # Worker experience CRUD functions
+def add_experience(db: Session, worker_id: UUID, payload: dict) -> Experience:
+    obj = Experience(worker_id=worker_id, **payload)
+    db.add(obj)
+    db.commit()
+    db.refresh(obj)
+    return obj
+
 def create_experience(db: Session, worker_id: UUID, payload: ExperienceCreate) -> Experience:
     obj = Experience(worker_id=worker_id, **payload.dict(exclude_unset=True))
     db.add(obj)

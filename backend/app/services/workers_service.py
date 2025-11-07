@@ -5,7 +5,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.models import VerificationStatus, Worker
+from ..models import Worker, VerificationStatus
 from app.repositories import WorkerRepository
 from app.schemas import (
     ExperienceCreate,
@@ -67,7 +67,14 @@ class WorkersService:
         worker = self.repo.get_worker(worker_id)
         if not worker:
             return False
-        self.repo.delete(worker)
+        
+        user = worker.user
+        if user:
+            self.session.delete(user)
+        else:
+            # If no user, delete the worker directly
+            self.repo.delete(worker)
+        
         self.session.commit()
         return True
 
@@ -84,7 +91,18 @@ class WorkersService:
 
     def list_experiences(self, worker_id: UUID) -> List[ExperienceRead]:
         experiences = self.repo.list_experiences(worker_id)
-        return [ExperienceRead.from_orm(exp) for exp in experiences]
+        return [
+            ExperienceRead(
+                id=exp.id,
+                worker_id=exp.worker_id,
+                company_name=exp.company_name,
+                position_title=exp.position_title,
+                start_date=exp.start_date,
+                end_date=exp.end_date,
+                description=exp.description,
+            )
+            for exp in experiences
+        ]
 
     def get_experience(self, worker_id: UUID, experience_id: UUID) -> ExperienceRead | None:
         experience = self.repo.get_experience(worker_id, experience_id)

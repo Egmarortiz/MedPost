@@ -60,8 +60,13 @@ class AuthService:
             hashed_password=self._hash_password(payload.password.get_secret_value()),
             role=UserRole.WORKER,
         )
+        
+        self.session.add(user)
+        self.session.flush()
+        
+        # Create worker with user_id
         worker = Worker(
-            user=user,
+            user_id=user.id,
             full_name=payload.full_name,
             title=payload.title,
             bio=payload.bio,
@@ -70,10 +75,11 @@ class AuthService:
             city=payload.city,
             state_province=payload.state_province,
             postal_code=payload.postal_code,
+            phone=payload.phone,
             education_level=payload.education_level,
         )
 
-        self.session.add_all([user, worker])
+        self.session.add(worker)
         self.session.flush()
 
         token_pair, refresh_obj = self._issue_token_pair(
@@ -83,7 +89,7 @@ class AuthService:
             worker_id=worker.id,
         )
 
-        self._log_event(user, AuthEventType.REGISTER, refresh_obj, ip_address, user_agent)
+        self._log_event(user, AuthEventType.REGISTRATION, refresh_obj, ip_address, user_agent)
         self.session.commit()
         return token_pair
 
@@ -100,8 +106,12 @@ class AuthService:
             hashed_password=self._hash_password(payload.password.get_secret_value()),
             role=UserRole.FACILITY,
         )
+
+        self.session.add(user)
+        self.session.flush()
+        
         facility = Facility(
-            user=user,
+            user_id=user.id,
             legal_name=payload.legal_name,
             industry=payload.industry,
             bio=payload.bio,
@@ -118,8 +128,16 @@ class AuthService:
             hq_country=payload.hq_country,
         )
 
-        self.session.add_all([user, facility])
+        self.session.add(facility)
         self.session.flush()
+        self.session.refresh(user)
+        
+        print(f"\n=== FACILITY REGISTRATION DEBUG ===")
+        print(f"User ID: {user.id}")
+        print(f"Facility ID: {facility.id}")
+        print(f"User facility_profile: {user.facility_profile}")
+        print(f"User facility_profile ID: {user.facility_profile.id if user.facility_profile else None}")
+        print(f"=== END REGISTRATION DEBUG ===\n")
 
         token_pair, refresh_obj = self._issue_token_pair(
             user,
@@ -128,7 +146,7 @@ class AuthService:
             facility_id=facility.id,
         )
 
-        self._log_event(user, AuthEventType.REGISTER, refresh_obj, ip_address, user_agent)
+        self._log_event(user, AuthEventType.REGISTRATION, refresh_obj, ip_address, user_agent)
         self.session.commit()
         return token_pair
 
@@ -261,12 +279,16 @@ class AuthService:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
         if not user.is_active:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account disabled")
-        if not self.password_context.verify(payload.password.get_secret_value(), user.hashed_password):
+        # Truncate password to 72 bytes (bcrypt limit)
+        password_bytes = payload.password.get_secret_value()[:72]
+        if not self.password_context.verify(password_bytes, user.hashed_password):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
         return user
 
     def _hash_password(self, password: str) -> str:
-        return self.password_context.hash(password)
+        # Truncate password to 72 bytes (bcrypt limit)
+        password_truncated = password[:72]
+        return self.password_context.hash(password_truncated)
 
     def _issue_token_pair(
         self,
@@ -281,6 +303,12 @@ class AuthService:
         access_exp = now + dt.timedelta(minutes=self.settings.access_token_expire_minutes)
         refresh_exp = now + dt.timedelta(days=self.settings.refresh_token_expire_days)
 
+        print(f"\n=== _issue_token_pair DEBUG ===")
+        print(f"User ID: {user.id}")
+        print(f"Worker ID param: {worker_id}")
+        print(f"Facility ID param: {facility_id} (type: {type(facility_id).__name__ if facility_id else 'None'})")
+        print(f"User role: {user.role}")
+
         payload = {
             "sub": str(user.id),
             "role": user.role.value,
@@ -289,6 +317,18 @@ class AuthService:
             "exp": int(access_exp.timestamp()),
             "type": "access",
         }
+        if worker_id:
+            print(f"Adding worker_id to token: {worker_id}")
+            payload["worker_id"] = str(worker_id)
+        if facility_id:
+            print(f"Adding facility_id to token: {facility_id}")
+            payload["facility_id"] = str(facility_id)
+        else:
+            print(f"NOT adding facility_id to token (facility_id is falsy)")
+        
+        print(f"Final payload keys: {list(payload.keys())}")
+        print(f"=== END _issue_token_pair DEBUG ===\n")
+        
         access_token = jwt.encode(payload, self.settings.jwt_secret_key, algorithm=self.settings.jwt_algorithm)
 
         refresh_token_plain = secrets.token_urlsafe(48)

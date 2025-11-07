@@ -87,6 +87,23 @@ class JobsService:
         return job
 
     def apply(self, payload: JobApplicationCreate) -> JobApplicationRead:
+        from fastapi import HTTPException, status
+        from app.models import VerificationStatus
+        
+        # Check if worker is verified
+        worker = self.worker_repo.get(payload.worker_id)
+        if not worker:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Worker not found",
+            )
+        
+        if worker.verification_status != VerificationStatus.COMPLETED:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Verification required to apply for jobs. Please complete identity verification first.",
+            )
+        
         data = (
             payload.model_dump(mode="json", exclude_unset=True)
             if hasattr(payload, "model_dump")
@@ -124,6 +141,31 @@ class JobsService:
     ) -> Optional[JobApplicationRead]:
         application = self.repo.get_application_for_worker(application_id, worker_id)
         if not application:
+            return None
+
+        data = (
+            payload.model_dump(mode="json", exclude_unset=True)
+            if hasattr(payload, "model_dump")
+            else payload.dict(exclude_unset=True)
+        )
+        for key, value in data.items():
+            setattr(application, key, value)
+        self.session.commit()
+        self.session.refresh(application)
+        return JobApplicationRead.from_orm(application)
+
+    def update_application_status(
+        self, application_id: UUID, facility_id: UUID, payload: JobApplicationUpdate
+    ) -> Optional[JobApplicationRead]:
+        """Update application status by facility (authorization check included)."""
+        # Get the application
+        application = self.repo.get_application(application_id)
+        if not application:
+            return None
+        
+        # Verify the application belongs to a job posting of this facility
+        job_post = self.repo.get_job(application.job_post_id)
+        if not job_post or job_post.facility_id != facility_id:
             return None
 
         data = (

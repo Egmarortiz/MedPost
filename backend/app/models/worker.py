@@ -34,6 +34,11 @@ class Worker(Base, TimestampMixin):
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True),
                                      primary_key=True, default=uuid4)
+    
+    user_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"),
+        unique=True, index=True
+    )
 
     full_name: Mapped[str] = mapped_column(String(160), index=True)
     title: Mapped[WorkerTitle] = mapped_column(SAEnum(WorkerTitle), index=True)
@@ -46,9 +51,23 @@ class Worker(Base, TimestampMixin):
     state_province: Mapped[Optional[str]] = mapped_column(String(120), index=True)
     postal_code: Mapped[Optional[str]] = mapped_column(String(20), index=True)
 
+    phone: Mapped[Optional[str]] = mapped_column(String(32), index=True)
+
     education_level: Mapped[EducationLevel] = mapped_column(
         SAEnum(EducationLevel), default=EducationLevel.HIGHSCHOOL, nullable=False
     )
+    
+    # Verification fields
+    verification_status: Mapped[VerificationStatus] = mapped_column(
+        SAEnum(VerificationStatus), default=VerificationStatus.NOT_STARTED, nullable=False
+    )
+    selfie_url: Mapped[Optional[str]] = mapped_column(String(512))
+    id_photo_url: Mapped[Optional[str]] = mapped_column(String(512))
+    verification_submitted_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    verification_completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="worker_profile")
 
     applications: Mapped[List["JobApplication"]] = relationship(
     back_populates="worker", cascade="all, delete-orphan"
@@ -154,7 +173,7 @@ class SafetyCheck(Base):
         UniqueConstraint("worker_id", "tier", name="uq_worker_tier_once"),
     )
 
-# Optional backref mapping (string name avoids import cycle)
+# Optional backref mapping
 from sqlalchemy.orm import relationship as _relationship
-JobApplication = None  # hint to linters, SQLAlchemy resolves at runtime
+JobApplication = None 
 

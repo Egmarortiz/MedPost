@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
@@ -26,5 +27,7 @@ class EndorsementRead(EndorsementBase):
     id: UUID
     worker_id: UUID
     facility_id: UUID
+    facility_name: str
+    created_at: Optional[datetime] = None
 
     model_config = APIModel.model_config

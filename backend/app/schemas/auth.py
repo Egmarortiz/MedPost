@@ -48,8 +48,9 @@ class WorkerRegistrationRequest(BaseModel):
     city: Optional[str] = None
     state_province: Optional[str] = None
     postal_code: Optional[str] = None
+    phone: Optional[str] = None
     education_level: EducationLevel = Field(default=EducationLevel.HIGHSCHOOL)
-
+    
     @field_validator("full_name")
     @classmethod
     def validate_full_name(cls, value: str) -> str:
@@ -78,3 +79,17 @@ class FacilityRegistrationRequest(BaseModel):
     @classmethod
     def validate_legal_name(cls, value: str) -> str:
         return value.strip()
+
+
+class VerificationSubmit(BaseModel):
+    """Worker identity verification submission."""
+    worker_id: UUID
+    selfie_url: str
+    id_photo_url: str
+    submitted_at: str
+
+
+class VerificationResponse(BaseModel):
+    """Worker identity verification response."""
+    message: str
+    worker_id: UUID

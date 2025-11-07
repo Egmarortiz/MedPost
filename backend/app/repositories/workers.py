@@ -6,10 +6,11 @@ from typing import List, Optional, Tuple
 from uuid import UUID
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
-from app.models import (
-    Endorsement,
+from app.models.base_model import Endorsement
+
+from ..models import (
     Experience,
     SafetyCheck,
     SafetyTier,
@@ -53,16 +54,24 @@ class WorkerRepository(SQLAlchemyRepository[Worker]):
         return workers, total
 
     def get_worker(self, worker_id: UUID) -> Optional[Worker]:
-        return self.session.get(Worker, worker_id)
+        stmt = select(Worker).where(Worker.id == worker_id).options(
+            joinedload(Worker.user),
+            joinedload(Worker.experiences)
+        )
+        return self.session.execute(stmt).scalars().first()
 
     def get_by_user_id(self, user_id: UUID) -> Optional[Worker]:
-        stmt = select(Worker).where(Worker.user_id == user_id)
+        stmt = select(Worker).where(Worker.user_id == user_id).options(
+            joinedload(Worker.user),
+            joinedload(Worker.experiences)
+        )
         return self.session.execute(stmt).scalars().first()
 
     def add_experience(self, worker_id: UUID, payload: dict) -> Experience:
         obj = Experience(worker_id=worker_id, **payload)
         self.session.add(obj)
-        self.session.flush()
+        self.session.commit()
+        self.session.refresh(obj)
         return obj
 
     def list_experiences(self, worker_id: UUID) -> List[Experience]:

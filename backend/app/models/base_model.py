@@ -64,23 +64,26 @@ class SafetyTier(str, Enum):
 
 
 class WorkerTitle(str, Enum):
-    RN = "RN"
-    LPN = "LPN"
-    CNA = "CNA"
+    RN = "REGISTERED NURSE"
+    LPN = "LICENSED PRACTICAL NURSE"
+    CNA = "CERTIFIED NURSING ASSISTANT"
     CAREGIVER = "CAREGIVER"
-    SUPPORT = "SUPPORT"
+    SUPPORT = "SUPPORT STAFF"
 
 
 class EducationLevel(str, Enum):
-    HIGHSCHOOL = "HIGHSCHOOL"
-    COLLEGE = "COLLEGE"
+    HIGHSCHOOL = "HIGH SCHOOL"
+    ASSOCIATES = "ASSOCIATE'S DEGREE"
+    BACHELORS = "BACHELOR'S DEGREE"
+    MASTERS = "MASTER'S DEGREE"
+    DOCTORATE = "DOCTORATE"
 
 
 class Industry(str, Enum):
     HOSPITAL = "HOSPITAL"
-    HOME_HEALTH = "HOME_HEALTH"
-    SENIOR_CARE = "SENIOR_CARE"
-    REHAB_CENTER = "REHAB_CENTER"
+    HOME_HEALTH = "HOME HEALTH"
+    SENIOR_CARE = "SENIOR CARE"
+    REHAB_CENTER = "REHAB CENTER"
     OTHER = "OTHER"
 
 
@@ -121,11 +124,24 @@ class Endorsement(Base, TimestampMixin):
     has_badge: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     # String-based targets to dodge import cycles; resolved at mapper config time
-    worker: Mapped["Worker"] = relationship(back_populates="endorsements")
-    facility: Mapped["Facility"] = relationship(back_populates="endorsements")
+    worker: Mapped["Worker"] = relationship("Worker", back_populates="endorsements")
+    facility: Mapped["Facility"] = relationship("Facility", back_populates="endorsements")
 
     __table_args__ = (
         UniqueConstraint("worker_id", "facility_id",
                          name="uq_endorsement_once_per_facility"),
     )
 
+# ---------- Auth Event Type Enum ----------
+class AuthEventType(str, Enum):
+    REGISTRATION = "REGISTRATION"
+    LOGIN = "LOGIN"
+    LOGOUT = "LOGOUT"
+    PASSWORD_RESET = "PASSWORD_RESET"
+    TOKEN_REFRESH = "TOKEN_REFRESH"
+    FAILED_LOGIN = "FAILED_LOGIN"
+
+# ---------- User Role Enum ----------
+class UserRole(str, Enum):
+    WORKER = "WORKER"
+    FACILITY = "FACILITY"

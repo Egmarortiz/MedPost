@@ -19,7 +19,7 @@ from app.schemas import (
     PaginationParams,
 )
 
-class FacilityCertificationAlreadyExistsError(Exception):
+class FacilityCertificationExists(Exception):
     """Raised when attempting to create a duplicate certification."""
 
 
@@ -50,17 +50,49 @@ class FacilitiesService:
         facility = self.repo.get_facility(facility_id)
         if not facility:
             return None
-        for key, value in payload.dict(exclude_unset=True).items():
+        
+        payload_dict = payload.dict(exclude_unset=True)
+        print(f"\n=== UPDATE FACILITY SERVICE ===")
+        print(f"Facility ID: {facility_id}")
+        print(f"Payload dict: {payload_dict}")
+        print(f"Payload keys: {list(payload_dict.keys())}")
+        
+        for key, value in payload_dict.items():
+            print(f"  Setting {key} = {value} (type: {type(value).__name__})")
             setattr(facility, key, value)
+        
+        print(f"Facility object after setattr:")
+        print(f"  hq_city: {facility.hq_city}")
+        print(f"  hq_address_line1: {facility.hq_address_line1}")
+        print(f"  hq_state_province: {facility.hq_state_province}")
+        print(f"  hq_postal_code: {facility.hq_postal_code}")
+        print(f"  phone_e164: {facility.phone_e164}")
+        
         self.session.commit()
         self.session.refresh(facility)
+        
+        print(f"Facility after commit/refresh:")
+        print(f"  hq_city: {facility.hq_city}")
+        print(f"  hq_address_line1: {facility.hq_address_line1}")
+        print(f"  hq_state_province: {facility.hq_state_province}")
+        print(f"  hq_postal_code: {facility.hq_postal_code}")
+        print(f"  phone_e164: {facility.phone_e164}")
+        print(f"=== END UPDATE FACILITY SERVICE ===\n")
+        
         return facility
 
     def delete_facility(self, facility_id: UUID) -> bool:
         facility = self.repo.get_facility(facility_id)
         if not facility:
             return False
-        self.repo.delete(facility)
+        
+        user = facility.user
+        if user:
+            self.session.delete(user)
+        else:
+            # If no user, just delete the facility directly
+            self.repo.delete(facility)
+        
         self.session.commit()
         return True
 
@@ -80,7 +112,7 @@ class FacilitiesService:
             raise ValueError("Facility not found")
 
         if self.repo.get_certification_by_code(facility_id, payload.code):
-            raise FacilityCertificationAlreadyExistsError
+            raise FacilityCertificationExists
 
         certification = FacilityCertification(
             facility_id=facility_id,

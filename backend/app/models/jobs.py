@@ -134,5 +134,5 @@ class JobApplication(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(String(20), default=ApplicationStatus.SUBMITTED, index=True)
 
     job_post: Mapped["JobPost"] = relationship(back_populates="applications")
-    # backref to Worker not required for MVP; we can add in worker.py to reverse nav if we want
+    worker: Mapped[Optional["Worker"]] = relationship(back_populates="applications")
 

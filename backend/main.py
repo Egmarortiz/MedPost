@@ -4,12 +4,18 @@ Initializes API connection with route
 """
 
 from fastapi import FastAPI
-from app.api import api_router
-from strawberry.fastapi import GraphQLRouter
-from app.graphql.root import schema
+from fastapi.middleware.cors import CORSMiddleware
+from app.api.v1 import api_router
 
-app = FastApi(title="MedPost API")
+app = FastAPI(title="MedPost API", version="1.0.0")
 
-app.include_router(api_router. prefic="/api")
-graphql_app = GraphQLRouter(schema)
-app.include_router(graphql_app, prefix="/graphql")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=["*"],  # Allow all headers
+)
+
+app.include_router(api_router, prefix="/api/v1")
+

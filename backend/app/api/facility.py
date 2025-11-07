@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import List
 
-from backend.app.schemas.facility import (
+from app.schemas.facility import (
     FacilityCreate,
     FacilityRead,
     FacilityUpdate,
@@ -16,6 +16,7 @@ from backend.app.schemas.facility import (
     FacilityCertificationRead,
 )
 from app import crud
+from app.api.deps import get_db
 
 router = APIRouter(prefix="/facilities", tags=["facilities"])
 

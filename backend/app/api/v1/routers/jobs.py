@@ -5,11 +5,12 @@ from __future__ import annotations
 from typing import Annotated, List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response,  status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status, Request
+from sqlalchemy import or_, func, cast, String
 
 from app.core import PuertoRicoMunicipality
-from app.core.security import TokenPayload
-from app.models import CompensationType, EmploymentType, WorkerTitle, UserRole
+from app.core.security import TokenPayload, decode_jwt
+from app.models import CompensationType, EmploymentType, WorkerTitle, UserRole, JobPost
 from app.schemas import (
     JobApplicationCreate,
     JobApplicationRead,
@@ -20,7 +21,7 @@ from app.schemas import (
     JobPostUpdate,
 )
 from app.api.deps import get_jobs_service, get_pagination_params, require_role
-from app.schemas.common import PaginationParams
+from app.schemas import PaginationParams
 from app.services.jobs_service import JobsService
 
 router = APIRouter()
@@ -86,10 +87,89 @@ def list_jobs(
 @router.post("/", response_model=JobPostRead, status_code=status.HTTP_201_CREATED)
 def create_job(
     payload: JobPostCreate,
+    current_user: FacilityUser,
     service: JobsService = Depends(get_jobs_service),
 ) -> JobPostRead:
     job = service.create_job(payload)
     return JobPostRead.from_orm(job)
+
+
+@router.get("/search")
+def search_jobs(
+    q: str = "",
+) -> List[dict]:
+    """Search jobs by position title, description, location, company name, or industry with keyword matching."""
+    try:
+        from app.db import get_session_factory
+        from app.models import Facility
+        SessionLocal = get_session_factory()
+        db = SessionLocal()
+        
+        if not q or not q.strip():
+            return []
+        
+        search_term = f"%{q.strip()}%"
+        
+        # Search by job position title, description, city, facility name, or industry
+        query = db.query(JobPost).join(Facility).filter(
+            or_(
+                func.lower(cast(JobPost.position_title, String)).ilike(search_term),
+                func.lower(cast(JobPost.description, String)).ilike(search_term),
+                func.lower(cast(JobPost.city, String)).ilike(search_term),
+                func.lower(cast(Facility.legal_name, String)).ilike(search_term),
+                func.lower(cast(Facility.industry, String)).ilike(search_term),
+            )
+        ).limit(50)
+        
+        jobs = query.all()
+        result = []
+        for job in jobs:
+            try:
+                salary_min = None
+                salary_max = None
+                if job.compensation_type.value == "HOURLY":
+                    salary_min = job.hourly_min
+                    salary_max = job.hourly_max
+                elif job.compensation_type.value == "MONTHLY":
+                    salary_min = job.monthly_min
+                    salary_max = job.monthly_max
+                elif job.compensation_type.value == "YEARLY":
+                    salary_min = job.yearly_min
+                    salary_max = job.yearly_max
+                
+                facility_name = None
+                facility_industry = None
+                if job.facility:
+                    facility_name = job.facility.legal_name
+                    facility_industry = job.facility.industry
+                
+                job_dict = {
+                    'id': str(job.id),
+                    'title': job.position_title,
+                    'description': job.description[:200] if job.description else None,
+                    'city': job.city,
+                    'state_province': job.state_province,
+                    'employment_type': job.employment_type.value if job.employment_type else None,
+                    'compensation_type': job.compensation_type.value if job.compensation_type else None,
+                    'salary_min': float(salary_min) if salary_min else None,
+                    'salary_max': float(salary_max) if salary_max else None,
+                    'is_active': job.is_active,
+                    'facility_id': str(job.facility_id),
+                    'facility_name': facility_name,
+                    'industry': facility_industry,
+                }
+                result.append(job_dict)
+            except Exception as e:
+                print(f"Error serializing job {job.id}: {e}")
+                import traceback
+                traceback.print_exc()
+        db.close()
+        return result
+    except Exception as e:
+        print(f"Search jobs error: {e}")
+        import traceback
+        traceback.print_exc()
+        return []
 
 
 @router.get("/{job_id}", response_model=JobPostRead)
@@ -176,6 +256,23 @@ def replace_job(
     if not job:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
     return JobPostRead.from_orm(job)
+
+
+@router.patch("/applications/{application_id}/status", response_model=JobApplicationRead)
+def update_application_status_by_facility(
+    application_id: UUID,
+    payload: JobApplicationUpdate,
+    current_user: FacilityUser,
+    service: JobsService = Depends(get_jobs_service),
+) -> JobApplicationRead:
+    """Allow facility to update application status."""
+    facility_id = _get_facility_id(service, current_user)
+    application = service.update_application_status(application_id, facility_id, payload)
+    if not application:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Job application not found or not authorized"
+        )
+    return application
 
 
 @router.patch("/applications/{application_id}", response_model=JobApplicationRead)

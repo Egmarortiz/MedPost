@@ -33,12 +33,19 @@ class Facility(Base, TimestampMixin):
 
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True),
                                      primary_key=True, default=uuid4)
+    
+    user_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"),
+        unique=True, index=True
+    )
 
     legal_name: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     industry: Mapped[Industry] = mapped_column(SAEnum(Industry), index=True)
     bio: Mapped[Optional[str]] = mapped_column(Text, default=None)
 
     profile_image_url: Mapped[Optional[str]] = mapped_column(String(512))
+    id_photo_url: Mapped[Optional[str]] = mapped_column(String(512))
+    license_id: Mapped[Optional[str]] = mapped_column(String(100))
     phone_e164: Mapped[Optional[str]] = mapped_column(String(32), index=True)
 
     company_size_min: Mapped[Optional[int]] = mapped_column(Integer)
@@ -53,6 +60,10 @@ class Facility(Base, TimestampMixin):
     hq_country: Mapped[Optional[str]] = mapped_column(String(120), index=True)
 
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    verification_submitted_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="facility_profile")
 
     job_posts: Mapped[List["JobPost"]] = relationship(
     back_populates="facility", cascade="all, delete-orphan"
