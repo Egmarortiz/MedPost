@@ -12,6 +12,7 @@ import {
   SafeAreaView,
 } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
+import { MaterialIcons } from "@expo/vector-icons";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
@@ -147,7 +148,7 @@ export function WorkerProfileView({ worker, endorsements = [], router }: { worke
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Location</Text>
         <View style={styles.locationContainer}>
-          <Text style={styles.locationIcon}>📍</Text>
+          <MaterialIcons name="location-on" size={20} color="#00ced1" />
           <View style={styles.locationDetails}>
             <Text style={styles.locationText}>
               {worker.city || "City not specified"}
@@ -490,7 +491,6 @@ export default function WorkerProfile() {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Location</Text>
             <View style={styles.locationContainer}>
-              <Text style={styles.locationIcon}>📍</Text>
               <View style={styles.locationDetails}>
                 <Text style={styles.locationText}>
                   {worker.city || "City not specified"}
@@ -631,7 +631,10 @@ export default function WorkerProfile() {
                       </Text>
                     )}
                     {job.city && job.state_province && (
-                      <Text style={styles.jobLocation}>📍 {job.city}, {job.state_province}</Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <MaterialIcons name="location-on" size={18} color="#00ced1" style={{ marginTop: -2 }} />
+                        <Text style={styles.jobLocation}>{job.city}, {job.state_province}</Text>
+                      </View>
                     )}
                     {job.description && (
                       <Text style={styles.jobDescription} numberOfLines={2}>

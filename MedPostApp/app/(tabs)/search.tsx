@@ -432,7 +432,10 @@ export default function SearchTab({ userType }: Props) {
             return null;
           })()}
           {item.city && item.state_province && (
-            <Text style={styles.jobLocation}>📍 {item.city}, {item.state_province}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <MaterialIcons name="location-on" size={18} color="#00ced1" style={{ marginTop: -2 }} />
+              <Text style={styles.jobLocation}>{item.city}, {item.state_province}</Text>
+            </View>
           )}
           {item.description && (
             <Text style={styles.jobDescription} numberOfLines={2}>

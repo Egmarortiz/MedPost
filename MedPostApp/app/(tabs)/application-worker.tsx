@@ -19,7 +19,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_ENDPOINTS, API_BASE_URL } from "../../config/api";
 import BottomTab from "../../components/BottomTab";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 
 export default function WorkerApplicationPage() {
   const router = useRouter();
@@ -221,7 +221,10 @@ export default function WorkerApplicationPage() {
                 return null;
               })()}
               {job.city && job.state_province && (
-                <Text style={styles.jobLocation}>📍 {job.city}, {job.state_province}</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <MaterialIcons name="location-on" size={18} color="#00ced1" style={{ marginTop: -2 }} />
+                  <Text style={styles.jobLocation}>{job.city}, {job.state_province}</Text>
+                </View>
               )}
               {job.description && (
                 <Text style={styles.jobDescription} numberOfLines={2}>

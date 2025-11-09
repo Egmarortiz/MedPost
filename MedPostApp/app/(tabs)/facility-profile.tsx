@@ -13,6 +13,7 @@ import {
   Modal,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
+import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { API_ENDPOINTS } from "../../config/api";
@@ -171,7 +172,10 @@ export function FacilityProfileView({ facility, jobs = [], applications = [], se
               })()}
               
               {job.city && job.state_province && (
-                <Text style={styles.jobLocation}>📍 {job.city}, {job.state_province}</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <MaterialIcons name="location-on" size={18} color="#00ced1" style={{ marginTop: -2 }} />
+                  <Text style={styles.jobLocation}>{job.city}, {job.state_province}</Text>
+                </View>
               )}
               
               {job.description && (

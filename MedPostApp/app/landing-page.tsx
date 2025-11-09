@@ -166,11 +166,6 @@ export default function LandingPage() {
         <Text style={styles.footerText}>
           © 2025 MedPost. All rights reserved.
         </Text>
-        <View style={styles.footerLinks}>
-          <Text style={styles.footerLink}>Privacy Policy</Text>
-          <Text style={styles.footerDivider}>•</Text>
-          <Text style={styles.footerLink}>Terms of Service</Text>
-        </View>
       </View>
     </ScrollView>
   );

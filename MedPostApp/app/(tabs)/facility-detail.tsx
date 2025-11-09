@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { MaterialIcons } from "@expo/vector-icons";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import BottomTab from "../../components/BottomTab";
@@ -217,7 +218,10 @@ export default function FacilityDetailPage() {
                   return null;
                 })()}
                 {job.city && job.state_province && (
-                  <Text style={styles.jobLocation}>📍 {job.city}, {job.state_province}</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <MaterialIcons name="location-on" size={18} color="#00ced1" style={{ marginTop: -2 }} />
+                    <Text style={styles.jobLocation}>{job.city}, {job.state_province}</Text>
+                  </View>
                 )}
                 {job.description && (
                   <Text style={styles.jobDescription} numberOfLines={2}>{job.description}</Text>
