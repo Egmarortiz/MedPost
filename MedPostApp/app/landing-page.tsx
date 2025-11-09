@@ -56,7 +56,7 @@ export default function LandingPage() {
             style={[styles.ctaButton, styles.ctaSecondary]}
             onPress={handleOpenApp}
           >
-            <Text style={styles.ctaSecondaryText}>Login</Text>
+            <Text style={styles.ctaSecondaryText}>Log In</Text>
           </TouchableOpacity>
         </View>
       </View>
