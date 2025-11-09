@@ -182,7 +182,7 @@ export default function Login() {
               onPress={handleSubmit}
               disabled={!isValid || isLoading}
             >
-              <Text style={styles.buttonText}>{isLoading ? "Logging in..." : "Login"}</Text>
+              <Text style={styles.buttonText}>{isLoading ? "Logging in..." : "Log In"}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.registerButton}
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   button: {
     width: "90%",
     height: 50,
-    backgroundColor: "#c0c0c0",
+    backgroundColor:"#00ced1",
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",

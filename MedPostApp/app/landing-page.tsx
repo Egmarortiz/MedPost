@@ -151,7 +151,7 @@ export default function LandingPage() {
       <View style={styles.ctaSection}>
         <Text style={styles.ctaTitle}>Ready to Get Started?</Text>
         <Text style={styles.ctaDescription}>
-          Join healthcare professionals and facilities using MedPost.
+          Join healthcare professionals and facilities using MedPost
         </Text>
         <TouchableOpacity 
           style={[styles.ctaButton, styles.ctaPrimary, styles.largeCTA]}
@@ -159,6 +159,38 @@ export default function LandingPage() {
         >
           <Text style={styles.ctaButtonText}>Download the App</Text>
         </TouchableOpacity>
+
+        {/* Credits Section */}
+        <View style={styles.creditsSection}>
+          
+          <View style={styles.creditsContainer}>
+            <View style={styles.creditCard}>
+              <Text style={styles.creditName}>Kamila Sostre Maldonado</Text>
+              <View style={styles.socialLinks}>
+                <TouchableOpacity onPress={() => Linking.openURL("https://www.linkedin.com/in/kamila-sostre-maldonado-60a760145")}>
+                  <Text style={styles.socialLink}>LinkedIn</Text>
+                </TouchableOpacity>
+                <Text style={styles.socialDivider}>•</Text>
+                <TouchableOpacity onPress={() => Linking.openURL("https://github.com/kamisos3")}>
+                  <Text style={styles.socialLink}>GitHub</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.creditCard}>
+              <Text style={styles.creditName}>Egmar Ortíz Ocasio</Text>
+              <View style={styles.socialLinks}>
+                <TouchableOpacity onPress={() => Linking.openURL("https://www.linkedin.com/in/egmar-ocasio-0b2108284")}>
+                  <Text style={styles.socialLink}>LinkedIn</Text>
+                </TouchableOpacity>
+                <Text style={styles.socialDivider}>•</Text>
+                <TouchableOpacity onPress={() => Linking.openURL("https://github.com/Egmarortiz")}>
+                  <Text style={styles.socialLink}>GitHub</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
       </View>
 
       {/* Footer */}
@@ -171,6 +203,14 @@ export default function LandingPage() {
   );
 }
 
+// Helper to get responsive values based on screen width
+const getResponsiveValue = (mobileValue: number, desktopValue: number): number => {
+  if (typeof window !== "undefined" && window.innerWidth < 768) {
+    return mobileValue;
+  }
+  return desktopValue;
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -181,7 +221,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 40,
+    paddingHorizontal: typeof window !== "undefined" && window.innerWidth < 768 ? 16 : 40,
     paddingVertical: 2,
     backgroundColor: "#00ced1",
     borderBottomWidth: 1,
@@ -189,8 +229,8 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   logo: {
-    width: 100,
-    height: 100,
+    width: typeof window !== "undefined" && window.innerWidth < 768 ? 70 : 100,
+    height: typeof window !== "undefined" && window.innerWidth < 768 ? 70 : 100,
     resizeMode: "contain",
   },
   navLinks: {
@@ -230,17 +270,17 @@ const styles = StyleSheet.create({
     color: "#00ced1",
   },
   hero: {
-    paddingHorizontal: 40,
-    paddingVertical: 80,
+    paddingHorizontal: typeof window !== "undefined" && window.innerWidth < 768 ? 16 : 40,
+    paddingVertical: typeof window !== "undefined" && window.innerWidth < 768 ? 40 : 80,
     alignItems: "center",
     backgroundColor: "transparent",
   },
   heroContent: {
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: typeof window !== "undefined" && window.innerWidth < 768 ? 24 : 40,
   },
   heroTitle: {
-    fontSize: 56,
+    fontSize: typeof window !== "undefined" && window.innerWidth < 768 ? 32 : 56,
     fontWeight: "800",
     color:  "#2d7b81ff",
     marginBottom: 12,
@@ -255,48 +295,49 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   heroSubtitle: {
-    fontSize: 28,
+    fontSize: typeof window !== "undefined" && window.innerWidth < 768 ? 18 : 28,
     fontWeight: "700",
     color: "#2c3e50",
     marginBottom: 20,
     textAlign: "center",
-    lineHeight: 36,
+    lineHeight: typeof window !== "undefined" && window.innerWidth < 768 ? 24 : 36,
   },
   heroDescription: {
-    fontSize: 16,
+    fontSize: typeof window !== "undefined" && window.innerWidth < 768 ? 14 : 16,
     color: "#555",
     textAlign: "center",
-    maxWidth: 600,
+    maxWidth: typeof window !== "undefined" && window.innerWidth < 768 ? "90%" : 600,
     lineHeight: 24,
     marginBottom: 32,
   },
   heroCTA: {
-    flexDirection: "row",
+    flexDirection: typeof window !== "undefined" && window.innerWidth < 768 ? "column" : "row",
     gap: 16,
     justifyContent: "center",
+    width: typeof window !== "undefined" && window.innerWidth < 768 ? "100%" : "auto",
   },
   featuresSection: {
-    paddingHorizontal: 40,
-    paddingVertical: 60,
+    paddingHorizontal: typeof window !== "undefined" && window.innerWidth < 768 ? 16 : 40,
+    paddingVertical: typeof window !== "undefined" && window.innerWidth < 768 ? 40 : 60,
     backgroundColor: "transparent",
   },
   sectionTitle: {
-    fontSize: 32,
+    fontSize: typeof window !== "undefined" && window.innerWidth < 768 ? 22 : 32,
     fontWeight: "700",
     color: "#2c3e50",
-    marginBottom: 40,
+    marginBottom: typeof window !== "undefined" && window.innerWidth < 768 ? 24 : 40,
     textAlign: "center",
   },
   featureGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 24,
+    gap: typeof window !== "undefined" && window.innerWidth < 768 ? 16 : 24,
     justifyContent: "center",
   },
   featureCard: {
-    width: "22%",
+    width: typeof window !== "undefined" && window.innerWidth < 768 ? "100%" : "22%",
     backgroundColor: "#fff",
-    padding: 24,
+    padding: typeof window !== "undefined" && window.innerWidth < 768 ? 16 : 24,
     borderRadius: 12,
     alignItems: "center",
     borderWidth: 1,
@@ -306,34 +347,34 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   featureTitle: {
-    fontSize: 18,
+    fontSize: typeof window !== "undefined" && window.innerWidth < 768 ? 16 : 18,
     fontWeight: "600",
     color: "#2c3e50",
     marginBottom: 12,
     textAlign: "center",
   },
   featureText: {
-    fontSize: 14,
+    fontSize: typeof window !== "undefined" && window.innerWidth < 768 ? 12 : 14,
     color: "#555",
     textAlign: "center",
     lineHeight: 20,
   },
   howItWorksSection: {
-    paddingHorizontal: 40,
-    paddingVertical: 60,
+    paddingHorizontal: typeof window !== "undefined" && window.innerWidth < 768 ? 16 : 40,
+    paddingVertical: typeof window !== "undefined" && window.innerWidth < 768 ? 40 : 60,
     backgroundColor: "transparent",
     borderTopWidth: 0,
   },
   stepsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 24,
+    gap: typeof window !== "undefined" && window.innerWidth < 768 ? 16 : 24,
     justifyContent: "center",
   },
   stepCard: {
-    width: "20%",
+    width: typeof window !== "undefined" && window.innerWidth < 768 ? "100%" : "20%",
     backgroundColor: "#fff",
-    padding: 24,
+    padding: typeof window !== "undefined" && window.innerWidth < 768 ? 16 : 24,
     borderRadius: 12,
     alignItems: "center",
     borderWidth: 1,
@@ -354,26 +395,26 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   stepTitle: {
-    fontSize: 16,
+    fontSize: typeof window !== "undefined" && window.innerWidth < 768 ? 14 : 16,
     fontWeight: "600",
     color: "#2c3e50",
     marginBottom: 8,
     textAlign: "center",
   },
   stepDescription: {
-    fontSize: 14,
+    fontSize: typeof window !== "undefined" && window.innerWidth < 768 ? 12 : 14,
     color: "#555",
     textAlign: "center",
     lineHeight: 20,
   },
   ctaSection: {
-    paddingHorizontal: 40,
-    paddingVertical: 60,
+    paddingHorizontal: typeof window !== "undefined" && window.innerWidth < 768 ? 16 : 40,
+    paddingVertical: typeof window !== "undefined" && window.innerWidth < 768 ? 40 : 60,
     backgroundColor: "transparent",
     alignItems: "center",
   },
   ctaTitle: {
-    fontSize: 32,
+    fontSize: typeof window !== "undefined" && window.innerWidth < 768 ? 22 : 32,
     fontWeight: "700",
     color: "#fff",
     marginBottom: 12,
@@ -381,7 +422,7 @@ const styles = StyleSheet.create({
     textShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
   } as any,
   ctaDescription: {
-    fontSize: 16,
+    fontSize: typeof window !== "undefined" && window.innerWidth < 768 ? 14 : 16,
     color: "#fff",
     textAlign: "center",
     marginBottom: 32,
@@ -389,11 +430,12 @@ const styles = StyleSheet.create({
     textShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
   } as any,
   ctaButton: {
-    paddingHorizontal: 32,
+    paddingHorizontal: typeof window !== "undefined" && window.innerWidth < 768 ? 24 : 32,
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
+    minWidth: typeof window !== "undefined" && window.innerWidth < 768 ? "100%" : "auto",
   },
   ctaPrimary: {
     backgroundColor: "#fff",
@@ -418,14 +460,14 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   footer: {
-    paddingHorizontal: 40,
-    paddingVertical: 30,
+    paddingHorizontal: typeof window !== "undefined" && window.innerWidth < 768 ? 16 : 40,
+    paddingVertical: typeof window !== "undefined" && window.innerWidth < 768 ? 20 : 30,
     backgroundColor: "transparent",
     alignItems: "center",
     borderTopWidth: 0,
   },
   footerText: {
-    fontSize: 14,
+    fontSize: typeof window !== "undefined" && window.innerWidth < 768 ? 12 : 14,
     color: "#fff",
     opacity: 0.7,
     marginBottom: 12,
@@ -444,5 +486,52 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#fff",
     opacity: 0.5,
+  },
+  creditsSection: {
+    marginTop: typeof window !== "undefined" && window.innerWidth < 768 ? 20 : 40,
+    paddingTop: 20,
+    marginLeft: typeof window !== "undefined" && window.innerWidth < 768 ? 8 : 40,
+    marginRight: typeof window !== "undefined" && window.innerWidth < 768 ? 8 : 40,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.3)",
+  },
+  creditsContainer: {
+    flexDirection: typeof window !== "undefined" && window.innerWidth < 768 ? "column" : "row",
+    justifyContent: "center",
+    gap: typeof window !== "undefined" && window.innerWidth < 768 ? 16 : 32,
+    flexWrap: "wrap",
+  },
+  creditsTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#ffffff",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  creditCard: {
+    marginBottom: 14,
+    alignItems: "center",
+  },
+  creditName: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#ffffff",
+    marginBottom: 6,
+  },
+  socialLinks: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    justifyContent: "center",
+  },
+  socialLink: {
+    fontSize: 12,
+    color: "#ffffff",
+    fontWeight: "500",
+    textDecorationLine: "underline",
+  },
+  socialDivider: {
+    fontSize: 12,
+    color: "#ffffff",
   },
 });
