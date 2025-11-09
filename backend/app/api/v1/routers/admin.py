@@ -50,7 +50,7 @@ class ApproveVerificationResponse(BaseModel):
 @router.get("/verifications/pending", response_model=List[PendingVerification])
 def list_pending_verifications(
     db: Session = Depends(get_db),
-    current_user = Depends(require_any_role(UserRole.WORKER))
+    current_user = Depends(require_any_role(UserRole.WORKER, UserRole.FACILITY))
 ) -> List[PendingVerification]:
     result = []
     
@@ -107,7 +107,7 @@ def list_pending_verifications(
 async def approve_verification(
     request: Request,
     db: Session = Depends(get_db),
-    current_user = Depends(require_any_role(UserRole.WORKER))
+    current_user = Depends(require_any_role(UserRole.WORKER, UserRole.FACILITY))
 ):
     # Read raw request body to bypass Pydantic validation
     body = await request.json()

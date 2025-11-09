@@ -10,7 +10,6 @@ export default function TabLayout() {
       {/* Worker Screens */}
       <Tabs.Screen name="worker-register" />
       <Tabs.Screen name="worker-experience" />
-      <Tabs.Screen name="worker-credentials" />
       <Tabs.Screen name="worker-verification" />
       <Tabs.Screen name="worker-home" />
       <Tabs.Screen name="worker-profile" />

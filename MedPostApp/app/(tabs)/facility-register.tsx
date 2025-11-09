@@ -10,6 +10,7 @@ import {
   Alert,
   Platform,
   SafeAreaView,
+  KeyboardAvoidingView,
 } from "react-native";
 import axios from "axios";
 import { API_ENDPOINTS, API_BASE_URL } from "../../config/api";
@@ -70,28 +71,41 @@ export default function FacilityRegister() {
     }
   };
 
-  const uploadFile = async (fileUri: string, endpoint: string) => {
+  const uploadFile = async (
+    fileUri: string,
+    endpoint: string
+  ): Promise<string | null> => {
     try {
       const formData = new FormData();
+      const filename = fileUri.split("/").pop() || "profile.jpg";
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match
+        ? `${endpoint.includes("image") ? "image" : "application"}/${match[1]}`
+        : "image/jpeg";
+
+      console.log("Uploading file:", { filename, type, endpoint });
+
       formData.append("file", {
         uri: fileUri,
-        type: "image/jpeg",
-        name: "upload.jpg",
+        name: filename,
+        type: type,
       } as any);
 
-      console.log("Uploading to:", endpoint);
       const response = await axios.post(endpoint, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
+        timeout: 30000,
       });
 
-      console.log("File upload response:", response.data);
-      const relativeUrl = response.data.url || response.data.file_url;
-      const absoluteUrl = relativeUrl.startsWith('http') 
-        ? relativeUrl 
+      console.log("Upload response:", response.data);
+
+      const relativeUrl = response.data.url;
+      const absoluteUrl = relativeUrl.startsWith("http")
+        ? relativeUrl
         : `${API_BASE_URL}${relativeUrl}`;
-      console.log("Absolute URL:", absoluteUrl);
+
+      console.log("Upload successful. Absolute URL:", absoluteUrl);
       return absoluteUrl;
     } catch (error: any) {
       console.error("File upload error:", error?.response?.data || error.message);
@@ -211,6 +225,11 @@ export default function FacilityRegister() {
   };
 
   return (
+      <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1 }}
+      >
+
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
@@ -370,7 +389,7 @@ export default function FacilityRegister() {
                   placeholderTextColor="#aaa"
                   onChangeText={handleChange(name)}
                   onBlur={handleBlur(name)}
-                  value={values[name]}
+                  value={(values as any)[name]}
                 />
               </View>
             ))}
@@ -403,6 +422,7 @@ export default function FacilityRegister() {
       </ScrollView>
       </View>
     </SafeAreaView>
+  </KeyboardAvoidingView>
   );
 }
 

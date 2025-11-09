@@ -51,14 +51,24 @@ export default function AdminVerificationScreen() {
       setLoading(true);
       const token = await AsyncStorage.getItem("token");
       
+      if (!token) {
+        console.warn("No token available for fetching verifications");
+        Alert.alert("Auth Required", "Please log in to view verifications");
+        setVerifications([]);
+        setLoading(false);
+        return;
+      }
+      
       const response = await axios.get(API_ENDPOINTS.ADMIN_PENDING_VERIFICATIONS, {
-        headers: token ? {
+        headers: {
           "Authorization": `Bearer ${token}`
-        } : {}
+        }
       });
       setVerifications(Array.isArray(response.data) ? response.data : []);
     } catch (error: any) {
-      console.error("Failed to fetch verifications:", error);
+      console.error("Failed to fetch verifications:", error?.response?.data || error.message);
+      console.error("Error status:", error?.response?.status);
+      console.error("Error headers:", error?.config?.headers);
       Alert.alert("Error", "Failed to load pending verifications");
       setVerifications([]);
     } finally {
@@ -216,21 +226,22 @@ export default function AdminVerificationScreen() {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#00ced1" />
-        <Text style={styles.loadingText}>Loading verifications...</Text>
-      </View>
-    );
-  }
-
-  if (verifications.length === 0) {
-    return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.emptyText}>No pending verifications</Text>
-        <TouchableOpacity style={styles.refreshButton} onPress={fetchPendingVerifications}>
-          <Text style={styles.refreshButtonText}>Refresh</Text>
-        </TouchableOpacity>
-      </View>
+      <SafeAreaView style={styles.safeContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={styles.backButton}>‹</Text>
+          </TouchableOpacity>
+          <Image
+            source={require("../../assets/images/MedPost-Icon.png")}
+            style={styles.headerLogo}
+          />
+          <View style={styles.headerSpacer} />
+        </View>
+        <View style={[styles.centerContainer, { flex: 1 }]}>
+          <ActivityIndicator size="large" color="#00ced1" />
+          <Text style={styles.loadingText}>Loading verifications...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -247,19 +258,27 @@ export default function AdminVerificationScreen() {
         <View style={styles.headerSpacer} />
       </View>
       <View style={{ flex: 1, backgroundColor: '#fff' }}>
-        <ScrollView style={styles.container}>
-          <View style={styles.pageHeader}>
-            <Text style={styles.pageHeaderTitle}>Pending Verifications</Text>
-            <Text style={styles.pageHeaderSubtitle}>
-              {facilities.length} facilities • {workers.length} workers
-            </Text>
+        {verifications.length === 0 ? (
+          <View style={[styles.centerContainer, { flex: 1 }]}>
+            <Text style={styles.emptyText}>No pending verifications</Text>
+            <TouchableOpacity style={styles.refreshButton} onPress={fetchPendingVerifications}>
+              <Text style={styles.refreshButtonText}>Refresh</Text>
+            </TouchableOpacity>
           </View>
+        ) : (
+          <ScrollView style={styles.container}>
+            <View style={styles.pageHeader}>
+              <Text style={styles.pageHeaderTitle}>Pending Verifications</Text>
+              <Text style={styles.pageHeaderSubtitle}>
+                {facilities.length} facilities • {workers.length} workers
+              </Text>
+            </View>
 
-          {facilities.length > 0 && (
-            <View>
-              <Text style={styles.sectionHeader}>Facilities ({facilities.length})</Text>
-              {facilities.map((verification) => (
-                <View key={verification.facility_id} style={styles.card}>
+            {facilities.length > 0 && (
+              <View>
+                <Text style={styles.sectionHeader}>Facilities ({facilities.length})</Text>
+                {facilities.map((verification) => (
+                  <View key={verification.facility_id} style={styles.card}>
                   <View style={styles.cardHeader}>
                     <Text style={styles.workerName}>{verification.legal_name}</Text>
                     <Text style={styles.workerTitle}>{verification.industry}</Text>
@@ -439,6 +458,7 @@ export default function AdminVerificationScreen() {
             </View>
           )}
         </ScrollView>
+        )}
       </View>
     </SafeAreaView>
   );
