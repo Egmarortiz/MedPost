@@ -516,6 +516,13 @@ export default function WorkerProfileUpdate() {
                 <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteProfile}>
                   <Text style={styles.deleteButtonText}>Delete Profile</Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.verificationLink}
+                  onPress={() => router.push("/(tabs)/admin-verification")}
+                >
+                  <Text style={styles.verificationLinkText}> Admin Page →</Text>
+                </TouchableOpacity>
               </>
             )}
           </Formik>
@@ -679,5 +686,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
     marginTop: 10,
+  },
+  verificationLink: {
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 12,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: "#00ced1",
+    backgroundColor: "transparent",
+  },
+  verificationLinkText: {
+    color: "#00ced1",
+    fontWeight: "600",
+    fontSize: 16,
   },
 });
